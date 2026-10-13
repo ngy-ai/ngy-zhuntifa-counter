@@ -120,6 +120,22 @@ flutter build ios --release          # iOS，需要在 macOS 上执行
 
 > iOS 首次构建时 Flutter 会自动生成 `ios/Podfile` 并执行 `pod install`。
 
+### 发布构建包（GitHub Releases）
+
+仓库自带 GitHub Actions 工作流（`.github/workflows/release.yml`）：
+
+- **打标签自动发版**：推送 `v*` 标签会触发构建，完成后在仓库的 Releases 页面生成一条带 APK 的发行版，手机直接下载安装：
+
+  ```bash
+  git tag v1.0.0          # 版本号与 pubspec.yaml 保持一致
+  git push origin v1.0.0
+  ```
+
+- **手动触发**：在仓库的 **Actions → Release APK → Run workflow** 手动运行；手动触发不会创建 Release，产物在本次运行的 Artifacts 里下载。
+- 构建前会跑 `flutter analyze` 与 `flutter test`，测试不通过则不发布。
+- 安装包当前使用调试签名（`android/app/build.gradle.kts` 中 release 使用 debug keys），可直接装机；上架应用商店前需换成正式签名。
+- CI 在海外运行，工作流里通过 `PUB_HOSTED_URL=https://pub.dev` 切回官方依赖源（本地锁文件用的是国内镜像）。
+
 ## 目录结构
 
 ```
