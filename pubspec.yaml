@@ -49,6 +49,9 @@ dev_dependencies:
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
 
+  # 把 assets/icon/app_icon.png 生成各平台应用图标
+  flutter_launcher_icons: ^0.14.4
+
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 
@@ -90,3 +93,14 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+# 应用图标：替换 assets/icon/app_icon.png 后执行 `dart run flutter_launcher_icons` 重新生成
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icon/app_icon.png"
+  # Android 自适应图标：前景用整张全出血图，主体在安全区内，系统裁切不会露白
+  adaptive_icon_background: "#1F1815"
+  adaptive_icon_foreground: "assets/icon/app_icon.png"
+  # App Store 要求图标不含透明通道
+  remove_alpha_ios: true

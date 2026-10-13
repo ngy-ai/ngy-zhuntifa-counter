@@ -171,6 +171,7 @@ lib/
     app_theme.dart              由皮肤生成 Material 主题
   utils/date_formats.dart       中文日期与时长格式化
 test/                           统计、仓库、皮肤、页面交互、语音、备份测试
+assets/icon/app_icon.png        应用图标源图（换图后执行 `dart run flutter_launcher_icons` 重新生成）
 ```
 
 ## 数据说明
