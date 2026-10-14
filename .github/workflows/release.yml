@@ -43,6 +43,31 @@ jobs:
       - name: 运行测试
         run: flutter test
 
+      - name: 准备正式签名
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+              echo "::error::发布标签版本必须配置 ANDROID_KEYSTORE_BASE64 等签名 Secrets"
+              exit 1
+            fi
+            echo "未配置签名 Secrets，本次使用调试签名构建"
+            exit 0
+          fi
+          mkdir -p android/key
+          echo "$KEYSTORE_BASE64" | base64 -d > android/key/ngy-zhuntifa-release.p12
+          {
+            echo "storeFile=key/ngy-zhuntifa-release.p12"
+            echo "storePassword=$KEYSTORE_PASSWORD"
+            echo "keyAlias=$KEY_ALIAS"
+            echo "keyPassword=$KEY_PASSWORD"
+          } > android/key.properties
+          echo "已写入正式签名配置（alias: $KEY_ALIAS）"
+
       - name: 构建发行 APK
         run: flutter build apk --release
 
@@ -59,12 +84,21 @@ jobs:
           name: zhunti-counter-apk
           path: dist/*.apk
 
+      - name: 核对 APK 签名
+        run: |
+          APKSIGNER=$(find "${ANDROID_HOME:-$ANDROID_SDK_ROOT}" -maxdepth 3 -name apksigner -type f 2>/dev/null | sort | tail -1)
+          if [ -n "$APKSIGNER" ]; then
+            "$APKSIGNER" verify --print-certs dist/*.apk | head -n 12
+          else
+            echo "未找到 apksigner，跳过签名核对"
+          fi
+
       - name: 发布到 GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           name: 准提法计数器 ${{ github.ref_name }}
           body: |
-            Android 安装包：下载下方 APK，传到手机安装即可（当前使用调试签名）。
+            Android 安装包：下载下方 APK，传到手机安装即可（正式签名，可直接覆盖升级）。
           files: dist/*.apk
           generate_release_notes: true

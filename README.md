@@ -133,8 +133,36 @@ flutter build ios --release          # iOS，需要在 macOS 上执行
 
 - **手动触发**：在仓库的 **Actions → Release APK → Run workflow** 手动运行；手动触发不会创建 Release，产物在本次运行的 Artifacts 里下载。
 - 构建前会跑 `flutter analyze` 与 `flutter test`，测试不通过则不发布。
-- 安装包当前使用调试签名（`android/app/build.gradle.kts` 中 release 使用 debug keys），可直接装机；上架应用商店前需换成正式签名。
+- 安装包使用正式签名（`android/app/build.gradle.kts` 读取 `android/key.properties`）：配好签名就用正式签名，未配置时回退调试签名，方便本地开发。
 - CI 在海外运行，工作流里通过 `PUB_HOSTED_URL=https://pub.dev` 切回官方依赖源（本地锁文件用的是国内镜像）。
+
+#### 正式签名
+
+密钥库 `android/key/ngy-zhuntifa-release.p12`（PKCS12，别名 `ngy-zhuntifa`，有效期 30 年）与密码只保存在本地，已被 `.gitignore` 忽略，**务必另行备份**：丢失后无法再更新已发布的 App。
+
+本地构建时新建 `android/key.properties`（同样不提交）：
+
+```properties
+storeFile=key/ngy-zhuntifa-release.p12
+storePassword=<keystore 密码>
+keyAlias=ngy-zhuntifa
+keyPassword=<key 密码>
+```
+
+CI 发版时从 **Settings → Secrets and variables → Actions** 读取，需要 4 个 Secret：
+
+| Secret | 内容 |
+| --- | --- |
+| `ANDROID_KEYSTORE_BASE64` | 密钥库文件的 Base64 文本 |
+| `ANDROID_KEYSTORE_PASSWORD` | keystore 密码 |
+| `ANDROID_KEY_ALIAS` | `ngy-zhuntifa` |
+| `ANDROID_KEY_PASSWORD` | key 密码 |
+
+生成 Base64：
+
+```powershell
+[Convert]::ToBase64String([IO.File]::ReadAllBytes('android\key\ngy-zhuntifa-release.p12'))
+```
 
 ## 目录结构
 
