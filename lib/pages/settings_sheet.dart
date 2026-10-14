@@ -1,7 +1,10 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../data/practice_backup.dart';
 import '../data/practice_store.dart';
@@ -67,7 +70,56 @@ class _SettingsSheetState extends State<_SettingsSheet> {
     );
   }
 
-  Future<void> _exportRecords() async {
+  /// 把备份写成 JSON 文件并唤起系统分享面板：可保存到手机，或直接发到微信、邮箱、网盘。
+  Future<void> _shareRecords() async {
+    final store = widget.store;
+    if (store.sessions.isEmpty && store.currentCount == 0) {
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+        const SnackBar(content: Text('还没有可导出的明细记录')),
+      );
+      return;
+    }
+
+    final text = store.exportBackup();
+    final sessionCount = store.sessions.length + (store.currentCount > 0 ? 1 : 0);
+    final totalCount =
+        store.sessions.fold<int>(0, (sum, session) => sum + session.count) +
+        store.currentCount;
+
+    try {
+      final directory = await getTemporaryDirectory();
+      final file = File('${directory.path}/${_backupFileName(DateTime.now())}');
+      await file.writeAsString(text);
+      if (!mounted) return;
+
+      final box = context.findRenderObject() as RenderBox?;
+      await SharePlus.instance.share(
+        ShareParams(
+          files: <XFile>[XFile(file.path, mimeType: 'application/json')],
+          subject: '准提法计数器明细备份',
+          text: '准提法计数器明细备份 · 共 $sessionCount 条记录 · $totalCount 遍',
+          sharePositionOrigin: box == null
+              ? null
+              : box.localToGlobal(Offset.zero) & box.size,
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+        SnackBar(content: Text('导出文件失败：$error')),
+      );
+    }
+  }
+
+  /// 备份文件名，如「准提法计数器备份-20261014-1530.json」。
+  static String _backupFileName(DateTime now) {
+    String two(int value) => value.toString().padLeft(2, '0');
+    return '准提法计数器备份-${now.year}${two(now.month)}${two(now.day)}'
+        '-${two(now.hour)}${two(now.minute)}.json';
+  }
+
+  /// 把备份复制到剪贴板，便于粘贴到备忘录或聊天窗口。
+  Future<void> _copyRecords() async {
     final store = widget.store;
     if (store.sessions.isEmpty && store.currentCount == 0) {
       ScaffoldMessenger.maybeOf(context)?.showSnackBar(
@@ -197,10 +249,17 @@ class _SettingsSheetState extends State<_SettingsSheet> {
             const SizedBox(height: 4),
             ListTile(
               contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.copy_all_rounded),
+              leading: const Icon(Icons.ios_share_rounded),
               title: const Text('导出明细记录'),
-              subtitle: const Text('复制为文本，粘贴到备忘录或文件中保存'),
-              onTap: _exportRecords,
+              subtitle: const Text('导出为文件，可保存到手机或发送到微信、邮箱、网盘'),
+              onTap: _shareRecords,
+            ),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.copy_all_rounded),
+              title: const Text('复制备份文本'),
+              subtitle: const Text('复制为文本，粘贴到备忘录或聊天窗口保存'),
+              onTap: _copyRecords,
             ),
             ListTile(
               contentPadding: EdgeInsets.zero,

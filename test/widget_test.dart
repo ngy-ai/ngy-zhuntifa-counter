@@ -238,7 +238,7 @@ void main() {
     await _teardown(tester, store);
   });
 
-  testWidgets('设置面板可以把明细导出到剪贴板', (WidgetTester tester) async {
+  testWidgets('设置面板可以把备份文本复制到剪贴板', (WidgetTester tester) async {
     final clipboard = <MethodCall>[];
     tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
       SystemChannels.platform,
@@ -263,9 +263,9 @@ void main() {
     await tester.tap(find.byIcon(Icons.tune_rounded));
     await tester.pumpAndSettle();
 
-    await tester.ensureVisible(find.text('导出明细记录'));
+    await tester.ensureVisible(find.text('复制备份文本'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('导出明细记录'));
+    await tester.tap(find.text('复制备份文本'));
     await tester.pumpAndSettle();
 
     expect(find.text('已复制导出文本'), findsOneWidget);
