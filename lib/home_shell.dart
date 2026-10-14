@@ -7,6 +7,7 @@ import 'pages/history_page.dart';
 import 'pages/home_page.dart';
 import 'pages/practice_page.dart';
 import 'pages/settings_sheet.dart';
+import 'widgets/total_count_progress.dart';
 
 /// 应用主框架：底部导航在「首页」与「功课」之间切换。
 class HomeShell extends StatefulWidget {
@@ -63,15 +64,22 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
           ),
         ],
       ),
-      body: IndexedStack(
-        index: _index,
+      body: Column(
         children: <Widget>[
-          HomePage(
-            onStartPractice: () => _goTo(1),
-            onViewHistory: () => _goTo(2),
+          const TotalCountProgress(),
+          Expanded(
+            child: IndexedStack(
+              index: _index,
+              children: <Widget>[
+                HomePage(
+                  onStartPractice: () => _goTo(1),
+                  onViewHistory: () => _goTo(2),
+                ),
+                const PracticePage(),
+                HistoryPage(onStartPractice: () => _goTo(1)),
+              ],
+            ),
           ),
-          const PracticePage(),
-          HistoryPage(onStartPractice: () => _goTo(1)),
         ],
       ),
       bottomNavigationBar: NavigationBar(
