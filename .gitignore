@@ -48,3 +48,5 @@ app.*.map.json
 # 正式签名材料（绝不提交）：密钥库、密码与 CI 用的 Secrets 文本
 /android/key.properties
 /android/key/
+# 密钥库的压缩备份也不要放在仓库里
+/android/*.zip
