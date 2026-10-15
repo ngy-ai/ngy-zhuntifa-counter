@@ -108,6 +108,12 @@
   "@voiceErrorUnknown": {
     "placeholders": { "code": { "type": "String" } }
   },
+  "voiceRetrying": "语音识别出错（{code}），正在重试",
+  "@voiceRetrying": {
+    "description": "可恢复的识别问题：界面提示正在自动重试，不需要用户操作",
+    "placeholders": { "code": { "type": "String" } }
+  },
+  "voiceNoSoundHint": "已经开启，但一直没听到声音：请把手机拿近一些，或在安静处念诵",
 
   "historyMonthTitle": "{yearMonth} 功课",
   "@historyMonthTitle": {

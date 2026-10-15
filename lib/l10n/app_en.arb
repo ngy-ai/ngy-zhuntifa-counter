@@ -65,6 +65,8 @@
   "voiceErrorBusy": "Speech recognition is busy (used by another app). Try again later",
   "voiceErrorNetwork": "Speech recognition needs a network connection. Check it and try again",
   "voiceErrorUnknown": "Speech recognition error ({code})",
+  "voiceRetrying": "Speech recognition error ({code}), retrying",
+  "voiceNoSoundHint": "Voice counting is on but no sound is coming through. Hold the phone closer or chant somewhere quieter",
 
   "historyMonthTitle": "{yearMonth} Practice",
   "historyMonthTotal": "This Month",

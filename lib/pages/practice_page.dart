@@ -170,6 +170,8 @@ class _PracticePageState extends State<PracticePage>
             _VoiceBar(
               listening: _voice.isActive,
               lastHeard: _voice.lastHeard,
+              retryErrorCode: _voice.retryErrorCode,
+              heardNothing: _voice.heardNothing,
               error: failure == null
                   ? null
                   : voiceFailureMessage(l10n, failure, _voice.failureDetail),
@@ -208,6 +210,8 @@ class _VoiceBar extends StatelessWidget {
   const _VoiceBar({
     required this.listening,
     required this.lastHeard,
+    required this.retryErrorCode,
+    required this.heardNothing,
     required this.error,
     required this.busy,
     required this.onChanged,
@@ -215,6 +219,12 @@ class _VoiceBar extends StatelessWidget {
 
   final bool listening;
   final String lastHeard;
+
+  /// 可恢复的识别问题（如 error_network），提示用户正在自动重试。
+  final String? retryErrorCode;
+
+  /// 开启后一直没听到声音，提示用户检查麦克风与念诵距离。
+  final bool heardNothing;
   final String? error;
   final bool busy;
   final ValueChanged<bool> onChanged;
@@ -232,10 +242,17 @@ class _VoiceBar extends StatelessWidget {
       title = l10n.voiceUnavailableTitle;
       subtitle = message;
     } else if (listening) {
+      final retryCode = retryErrorCode;
       title = l10n.voiceListeningTitle;
-      subtitle = lastHeard.isEmpty
-          ? l10n.voiceListeningHint
-          : l10n.voiceHeard(lastHeard);
+      if (retryCode != null) {
+        subtitle = l10n.voiceRetrying(retryCode);
+      } else if (heardNothing) {
+        subtitle = l10n.voiceNoSoundHint;
+      } else {
+        subtitle = lastHeard.isEmpty
+            ? l10n.voiceListeningHint
+            : l10n.voiceHeard(lastHeard);
+      }
     } else {
       title = l10n.voiceTitle;
       subtitle = l10n.voiceIdleHint;

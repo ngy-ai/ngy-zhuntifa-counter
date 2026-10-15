@@ -11,13 +11,40 @@ const String mantraText =
 /// 语音识别经常把咒文识别成音近的别的字（「飒哆喃」→「萨多南」、
 /// 「俱胝喃」→「俱知南」），汉字对不上但拼音几乎一致，所以比对拼音。
 const String mantraPinyin =
-    'namosaduonansanmiaosanputuojuzhinandazhitaanzhelizhulizhuntisuopohe';
+    'namosaduonan' 'sanmiaosanputuo' 'juzhinan' 'dazhita' 'an' 'zhelizhuli' 'zhuntisuopohe';
+
+/// 实际念诵里与文读不同的读音，比对前先归一化回文读，这样各家各派的念法都能计数。
+///
+/// 汉字拼音给的是文读（怛侄他 dá zhí tā、唵 ān、娑婆诃 suō pó hē），而课诵习惯
+/// 多念成「da zha tuo / ōng / suo ha」，语音识别照念出来的音转写，拼音就和文读对不上。
+///
+/// 键是听成的音，值是 [mantraPinyin] 里的文读音；要加新念法在这里补一行即可。
+/// 注意：键之间不能互相包含（否则替换会互相破坏，见 mantra_matcher_test.dart）。
+const Map<String, String> mantraPinyinAliases = <String, String>{
+  // 怛侄他：文读 dá zhí tā，课诵多念 da zha tuo
+  'dazhatuo': 'dazhita',
+  'dazhaduo': 'dazhita', // 末字被听成「多」
+  'dazhata': 'dazhita', // 末字被听成「他」
+  // 唵：文读 ān，课诵多念 ōng
+  'weng': 'an', // 嗡 / 翁
+  'wang': 'an', // 王 / 汪 这类近音
+  'hong': 'an', // 轰
+  // 娑婆诃：文读 suō pó hē，课诵多念 suo ha
+  'suoha': 'suopohe', // 娑哈 / 梭哈 / 索哈
+  'suopoha': 'suopohe', // 娑婆哈
+  'suohe': 'suopohe', // 娑嚩诃：「嚩」无拼音会被丢掉
+  'suowahe': 'suopohe', // 娑嚩诃（识别器补出了「嚩」的音）
+  'sapohe': 'suopohe', // 萨婆诃
+};
 
 /// 把语音识别结果按「遍」比对，判断是否圆满了一遍准提咒。
 ///
 /// 判定条件有两条，缺一不可：
 /// 1. 整体与咒文拼音的二元组 Dice 相似度足够高（容忍识别错字、漏字）；
 /// 2. 结尾「准提娑婆诃」也确实听到——否则念到一半停下也会被误记成一遍。
+///
+/// 比对前会先把常见念诵读音归一化（见 [mantraPinyinAliases]），因此按
+/// 「da zha tuo / ōng / suo ha」这类课诵习惯念，同样能判成圆满一遍。
 class MantraMatcher {
   MantraMatcher({
     this.threshold = 0.75,
@@ -62,7 +89,7 @@ class MantraMatcher {
     final pinyin = toPinyin(trimmed);
     if (pinyin.isEmpty) return 0;
 
-    _pending += pinyin;
+    _pending += normalizePinyin(pinyin);
     final matched = _consume();
     _trim();
     return matched;
@@ -72,6 +99,19 @@ class MantraMatcher {
   void reset() {
     _pending = '';
     _lastHeard = '';
+  }
+
+  /// 把常见念诵读音归一化回文读拼音（见 [mantraPinyinAliases]）。
+  ///
+  /// 别名之间互不包含，逐个替换不会互相破坏；没有别名时原样返回。
+  static String normalizePinyin(String pinyin) {
+    var result = pinyin;
+    for (final alias in mantraPinyinAliases.entries) {
+      if (result.contains(alias.key)) {
+        result = result.replaceAll(alias.key, alias.value);
+      }
+    }
+    return result;
   }
 
   /// 汉字转不带声调的字母拼音，非汉字一律丢掉。

@@ -284,5 +284,34 @@ void main() {
       expect(counter.status, VoiceStatus.listening);
       expect(counter.failure, isNull);
     });
+
+    test('没听清也会继续聆听：Android 把所有错误都标成 permanent', () async {
+      await counter.start();
+      expect(fake.listenCalls, 1);
+
+      fake.errorListener?.call(SpeechRecognitionError('error_no_match', true));
+      await Future<void>.delayed(const Duration(milliseconds: 600));
+
+      expect(counter.status, VoiceStatus.listening);
+      expect(counter.failure, isNull);
+      expect(counter.retryErrorCode, isNull);
+      expect(fake.listenCalls, 2);
+    });
+
+    test('网络类错误继续重试，并记录错误码供界面提示', () async {
+      await counter.start();
+
+      fake.errorListener?.call(SpeechRecognitionError('error_network', true));
+      await Future<void>.delayed(const Duration(milliseconds: 600));
+
+      expect(counter.status, VoiceStatus.listening);
+      expect(counter.failure, isNull);
+      expect(counter.retryErrorCode, 'error_network');
+      expect(fake.listenCalls, 2);
+
+      fake.emit(recognition('南无飒哆喃', isFinal: true));
+
+      expect(counter.retryErrorCode, isNull);
+    });
   });
 }

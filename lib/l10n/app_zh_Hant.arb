@@ -65,6 +65,8 @@
   "voiceErrorBusy": "語音辨識被其他應用程式占用，請稍後重試",
   "voiceErrorNetwork": "語音辨識需要網路，請檢查網路後重試",
   "voiceErrorUnknown": "語音辨識出錯（{code}）",
+  "voiceRetrying": "語音辨識出錯（{code}），正在重試",
+  "voiceNoSoundHint": "已經開啟，但一直沒聽到聲音：請把手機拿近一些，或在安靜處念誦",
 
   "historyMonthTitle": "{yearMonth} 功課",
   "historyMonthTotal": "本月合計",
