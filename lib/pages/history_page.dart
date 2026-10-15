@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../data/practice_history.dart';
 import '../data/practice_scope.dart';
+import '../l10n/gen/app_localizations.dart';
 import '../models/practice_session.dart';
 import '../theme/app_skin.dart';
 import '../utils/date_formats.dart';
@@ -57,6 +58,7 @@ class _SummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final skin = AppSkin.of(context);
     return Card(
       child: Padding(
@@ -64,26 +66,34 @@ class _SummaryCard extends StatelessWidget {
         child: Column(
           children: <Widget>[
             Text(
-              '${DateFormats.yearMonth(now)} 功课',
+              l10n.historyMonthTitle(DateFormats.yearMonth(context, now)),
               style: TextStyle(fontSize: 12.5, color: skin.onSurfaceVariant),
             ),
             const SizedBox(height: 12),
             Row(
               children: <Widget>[
-                _SummaryItem(label: '本月合计', value: '${history.monthCount}', unit: '遍'),
-                const _SummaryDivider(),
-                _SummaryItem(label: '本月用功', value: '${history.monthDays}', unit: '天'),
+                _SummaryItem(
+                  label: l10n.historyMonthTotal,
+                  value: '${history.monthCount}',
+                  unit: l10n.unitCount,
+                ),
                 const _SummaryDivider(),
                 _SummaryItem(
-                  label: '累计功课',
+                  label: l10n.historyMonthDays,
+                  value: '${history.monthDays}',
+                  unit: l10n.unitDay,
+                ),
+                const _SummaryDivider(),
+                _SummaryItem(
+                  label: l10n.historyTotalSessions,
                   value: '${history.totalSessions}',
-                  unit: '次',
+                  unit: l10n.unitSession,
                 ),
               ],
             ),
             const SizedBox(height: 12),
             Text(
-              '累计 ${history.totalCount} 遍 · ${history.activeDays} 天有记录',
+              l10n.historyTotalLine(history.totalCount, history.activeDays),
               style: TextStyle(fontSize: 12, color: skin.onSurfaceVariant),
             ),
           ],
@@ -171,9 +181,9 @@ class _DayCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final skin = AppSkin.of(context);
-    final relative = DateFormats.friendlyDay(group.date, now);
-    final isRecent = relative == '今天' || relative == '昨天' || relative == '前天';
+    final isRecent = DateFormats.isRecentDay(group.date, now);
 
     return Card(
       clipBehavior: Clip.antiAlias,
@@ -185,7 +195,7 @@ class _DayCard extends StatelessWidget {
             child: Row(
               children: <Widget>[
                 Text(
-                  '${DateFormats.monthDay(group.date)} 星期${DateFormats.weekday(group.date)}',
+                  DateFormats.monthDayWeekday(context, group.date),
                   style: const TextStyle(
                     fontSize: 14.5,
                     fontWeight: FontWeight.w600,
@@ -203,14 +213,14 @@ class _DayCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
-                      relative,
+                      DateFormats.friendlyDay(context, group.date, now),
                       style: TextStyle(fontSize: 11, color: skin.primary),
                     ),
                   ),
                 ],
                 const Spacer(),
                 Text(
-                  '${group.count} 遍',
+                  l10n.countTimes(group.count),
                   style: TextStyle(
                     fontSize: 14.5,
                     fontWeight: FontWeight.w700,
@@ -248,25 +258,28 @@ class _SessionRow extends StatelessWidget {
   final bool showDivider;
 
   Future<bool> _confirmDelete(BuildContext context) async {
+    final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('删除这条记录？'),
+        title: Text(l10n.recordDeleteTitle),
         content: Text(
-          '${DateFormats.monthDay(session.startAt)} '
-          '${DateFormats.timeRange(session.startAt, session.endAt)} '
-          '的 ${session.count} 遍将从统计中扣除。',
+          l10n.recordDeleteBody(
+            DateFormats.monthDay(context, session.startAt),
+            DateFormats.timeRange(session.startAt, session.endAt),
+            session.count,
+          ),
         ),
         actions: <Widget>[
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('取消'),
+            child: Text(l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(dialogContext, true),
             style: FilledButton.styleFrom(backgroundColor: scheme.error),
-            child: const Text('删除'),
+            child: Text(l10n.delete),
           ),
         ],
       ),
@@ -277,6 +290,7 @@ class _SessionRow extends StatelessWidget {
   /// 打开详情面板；用户在面板里确认删除时，按类型执行删除或放弃。
   Future<void> _openDetail(BuildContext context) async {
     final store = PracticeScope.read(context);
+    final l10n = AppLocalizations.of(context);
     final removed = await showRecitationSheet(
       context,
       session,
@@ -291,12 +305,15 @@ class _SessionRow extends StatelessWidget {
     }
     if (!context.mounted) return;
     ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-      SnackBar(content: Text(isOngoing ? '已放弃本次功课' : '已删除这条记录')),
+      SnackBar(
+        content: Text(isOngoing ? l10n.sessionDiscarded : l10n.recordDeleted),
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final skin = AppSkin.of(context);
     final scheme = Theme.of(context).colorScheme;
     final store = PracticeScope.read(context);
@@ -333,7 +350,7 @@ class _SessionRow extends StatelessWidget {
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
-                          '进行中',
+                          l10n.historyOngoing,
                           style: TextStyle(fontSize: 11, color: skin.jade),
                         ),
                       ),
@@ -342,14 +359,16 @@ class _SessionRow extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '持续 ${DateFormats.duration(session.duration)}',
+                  l10n.durationLine(
+                    DateFormats.duration(context, session.duration),
+                  ),
                   style: TextStyle(fontSize: 12, color: skin.outline),
                 ),
               ],
             ),
           ),
           Text(
-            '${session.count} 遍',
+            l10n.countTimes(session.count),
             style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w600,
@@ -387,7 +406,7 @@ class _SessionRow extends StatelessWidget {
                   Icon(Icons.delete_outline_rounded, color: scheme.onError),
                   const SizedBox(width: 6),
                   Text(
-                    '删除',
+                    l10n.delete,
                     style: TextStyle(
                       color: scheme.onError,
                       fontWeight: FontWeight.w600,
@@ -413,6 +432,7 @@ class _EmptyHistory extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final skin = AppSkin.of(context);
     return SafeArea(
       child: Center(
@@ -428,7 +448,7 @@ class _EmptyHistory extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               Text(
-                '还没有功课明细',
+                l10n.historyEmptyTitle,
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
@@ -437,7 +457,7 @@ class _EmptyHistory extends StatelessWidget {
               ),
               const SizedBox(height: 6),
               Text(
-                '每完成一次功课，这里就会留下一条记录',
+                l10n.historyEmptyHint,
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 13, color: skin.onSurfaceVariant),
               ),
@@ -445,7 +465,7 @@ class _EmptyHistory extends StatelessWidget {
               FilledButton.icon(
                 onPressed: onStartPractice,
                 icon: const Icon(Icons.self_improvement_rounded, size: 18),
-                label: const Text('去持咒'),
+                label: Text(l10n.historyGoPractice),
               ),
             ],
           ),

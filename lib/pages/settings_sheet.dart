@@ -6,8 +6,11 @@ import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../data/backup_error.dart';
 import '../data/practice_backup.dart';
 import '../data/practice_store.dart';
+import '../l10n/app_language.dart';
+import '../l10n/gen/app_localizations.dart';
 import '../models/practice_settings.dart';
 import '../theme/app_skin.dart';
 
@@ -20,6 +23,25 @@ Future<void> showPracticeSettings(BuildContext context, PracticeStore store) {
     builder: (_) => _SettingsSheet(store: store),
   );
 }
+
+/// 皮肤模式的展示名称，随语言变化。
+String _skinLabel(AppLocalizations l10n, AppSkinMode mode) => switch (mode) {
+  AppSkinMode.system => l10n.skinSystem,
+  AppSkinMode.light => l10n.skinLight,
+  AppSkinMode.dark => l10n.skinDark,
+};
+
+/// 语言选项的展示名称。
+///
+/// 简体中文 / 繁體中文 / English 都写成自己的文字，任何界面语言下都能认出来；
+/// 只有「跟随系统」需要翻译。
+String _languageLabel(AppLocalizations l10n, AppLanguage language) =>
+    switch (language) {
+      AppLanguage.system => l10n.languageSystem,
+      AppLanguage.zh => l10n.languageZh,
+      AppLanguage.zhHant => l10n.languageZhHant,
+      AppLanguage.en => l10n.languageEn,
+    };
 
 class _SettingsSheet extends StatefulWidget {
   const _SettingsSheet({required this.store});
@@ -42,22 +64,23 @@ class _SettingsSheetState extends State<_SettingsSheet> {
   }
 
   Future<void> _confirmClear() async {
+    final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('清空全部记录？'),
-        content: const Text('所有持咒记录与统计都会被删除，且无法恢复。'),
+        title: Text(l10n.clearConfirmTitle),
+        content: Text(l10n.clearConfirmBody),
         actions: <Widget>[
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('取消'),
+            child: Text(l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(dialogContext, true),
             style: FilledButton.styleFrom(
               backgroundColor: Theme.of(dialogContext).colorScheme.error,
             ),
-            child: const Text('确认清空'),
+            child: Text(l10n.clearConfirmAction),
           ),
         ],
       ),
@@ -65,18 +88,19 @@ class _SettingsSheetState extends State<_SettingsSheet> {
     if (confirmed != true || !mounted) return;
     await widget.store.clearAll();
     if (!mounted) return;
-    ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-      const SnackBar(content: Text('已清空全部持咒记录')),
-    );
+    ScaffoldMessenger.maybeOf(
+      context,
+    )?.showSnackBar(SnackBar(content: Text(l10n.clearDone)));
   }
 
   /// 把备份写成 JSON 文件并唤起系统分享面板：可保存到手机，或直接发到微信、邮箱、网盘。
   Future<void> _shareRecords() async {
+    final l10n = AppLocalizations.of(context);
     final store = widget.store;
     if (store.sessions.isEmpty && store.currentCount == 0) {
-      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-        const SnackBar(content: Text('还没有可导出的明细记录')),
-      );
+      ScaffoldMessenger.maybeOf(
+        context,
+      )?.showSnackBar(SnackBar(content: Text(l10n.exportEmpty)));
       return;
     }
 
@@ -88,7 +112,9 @@ class _SettingsSheetState extends State<_SettingsSheet> {
 
     try {
       final directory = await getTemporaryDirectory();
-      final file = File('${directory.path}/${_backupFileName(DateTime.now())}');
+      final file = File(
+        '${directory.path}/${_backupFileName(l10n, DateTime.now())}',
+      );
       await file.writeAsString(text);
       if (!mounted) return;
 
@@ -96,8 +122,8 @@ class _SettingsSheetState extends State<_SettingsSheet> {
       await SharePlus.instance.share(
         ShareParams(
           files: <XFile>[XFile(file.path, mimeType: 'application/json')],
-          subject: '准提法计数器明细备份',
-          text: '准提法计数器明细备份 · 共 $sessionCount 条记录 · $totalCount 遍',
+          subject: l10n.exportShareSubject,
+          text: l10n.exportShareText(sessionCount, totalCount),
           sharePositionOrigin: box == null
               ? null
               : box.localToGlobal(Offset.zero) & box.size,
@@ -106,25 +132,28 @@ class _SettingsSheetState extends State<_SettingsSheet> {
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-        SnackBar(content: Text('导出文件失败：$error')),
+        SnackBar(content: Text(l10n.exportFailed('$error'))),
       );
     }
   }
 
   /// 备份文件名，如「准提法计数器备份-20261014-1530.json」。
-  static String _backupFileName(DateTime now) {
+  static String _backupFileName(AppLocalizations l10n, DateTime now) {
     String two(int value) => value.toString().padLeft(2, '0');
-    return '准提法计数器备份-${now.year}${two(now.month)}${two(now.day)}'
-        '-${two(now.hour)}${two(now.minute)}.json';
+    final stamp =
+        '${now.year}${two(now.month)}${two(now.day)}'
+        '-${two(now.hour)}${two(now.minute)}';
+    return l10n.exportFileName(stamp);
   }
 
   /// 把备份复制到剪贴板，便于粘贴到备忘录或聊天窗口。
   Future<void> _copyRecords() async {
+    final l10n = AppLocalizations.of(context);
     final store = widget.store;
     if (store.sessions.isEmpty && store.currentCount == 0) {
-      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-        const SnackBar(content: Text('还没有可导出的明细记录')),
-      );
+      ScaffoldMessenger.maybeOf(
+        context,
+      )?.showSnackBar(SnackBar(content: Text(l10n.exportEmpty)));
       return;
     }
 
@@ -140,16 +169,12 @@ class _SettingsSheetState extends State<_SettingsSheet> {
     await showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('已复制导出文本'),
-        content: Text(
-          '共 $sessionCount 条记录 · $totalCount 遍，备份文本已复制到剪贴板。\n\n'
-          '可以粘贴到备忘录、聊天窗口或文件中保存；'
-          '恢复时在「导入恢复」里把这段文本粘贴回来即可。',
-        ),
+        title: Text(l10n.copyDoneTitle),
+        content: Text(l10n.copyDoneBody(sessionCount, totalCount)),
         actions: <Widget>[
           FilledButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('好的'),
+            child: Text(l10n.confirmOk),
           ),
         ],
       ),
@@ -163,21 +188,23 @@ class _SettingsSheetState extends State<_SettingsSheet> {
     );
     if (result == null || !mounted) return;
 
+    final l10n = AppLocalizations.of(context);
     final String message;
     if (result.replaced) {
-      message = '已用备份恢复 ${result.totalSessions} 条明细记录';
+      message = l10n.importRestored(result.totalSessions);
     } else if (result.added == 0) {
-      message = '没有新增记录，备份里的 ${result.skipped} 条都已存在';
+      message = l10n.importNothingNew(result.skipped);
     } else if (result.skipped == 0) {
-      message = '已导入 ${result.added} 条明细记录';
+      message = l10n.importAdded(result.added);
     } else {
-      message = '已导入 ${result.added} 条明细记录，跳过 ${result.skipped} 条已存在的';
+      message = l10n.importAddedSkipped(result.added, result.skipped);
     }
     ScaffoldMessenger.maybeOf(context)?.showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
 
     return SafeArea(
@@ -187,46 +214,48 @@ class _SettingsSheetState extends State<_SettingsSheet> {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            const Text(
-              '功课设置',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+            Text(
+              l10n.settingsTitle,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 20),
-            _SectionLabel(text: '每日目标（遍）'),
+            _SectionLabel(text: l10n.settingsDailyGoal),
             const SizedBox(height: 10),
-            _OptionChips(
+            _OptionChips<int>(
               options: _goalOptions,
               selected: _draft.dailyGoal,
+              labelOf: (value) => '$value',
               onSelected: (value) =>
                   _apply(_draft.copyWith(dailyGoal: value)),
             ),
             const SizedBox(height: 22),
-            _SectionLabel(text: '每串念珠颗数'),
+            _SectionLabel(text: l10n.settingsBeadCount),
             const SizedBox(height: 10),
-            _OptionChips(
+            _OptionChips<int>(
               options: _beadOptions,
               selected: _draft.beadCount,
+              labelOf: (value) => '$value',
               onSelected: (value) =>
                   _apply(_draft.copyWith(beadCount: value)),
             ),
             const SizedBox(height: 14),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
-              title: const Text('震动反馈'),
-              subtitle: const Text('每次计数时轻微震动'),
+              title: Text(l10n.settingsHaptics),
+              subtitle: Text(l10n.settingsHapticsHint),
               value: _draft.hapticsEnabled,
               onChanged: (value) =>
                   _apply(_draft.copyWith(hapticsEnabled: value)),
             ),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
-              title: const Text('点击提示音'),
-              subtitle: const Text('每次计数时播放系统提示音'),
+              title: Text(l10n.settingsSound),
+              subtitle: Text(l10n.settingsSoundHint),
               value: _draft.soundEnabled,
               onChanged: (value) => _apply(_draft.copyWith(soundEnabled: value)),
             ),
             const SizedBox(height: 22),
-            _SectionLabel(text: '界面皮肤'),
+            _SectionLabel(text: l10n.settingsSkin),
             const SizedBox(height: 10),
             SizedBox(
               width: double.infinity,
@@ -236,7 +265,7 @@ class _SettingsSheetState extends State<_SettingsSheet> {
                   for (final mode in AppSkinMode.values)
                     ButtonSegment<AppSkinMode>(
                       value: mode,
-                      label: Text(mode.label),
+                      label: Text(_skinLabel(l10n, mode)),
                     ),
                 ],
                 selected: <AppSkinMode>{_draft.skinMode},
@@ -245,27 +274,37 @@ class _SettingsSheetState extends State<_SettingsSheet> {
               ),
             ),
             const SizedBox(height: 22),
-            _SectionLabel(text: '备份与恢复'),
+            _SectionLabel(text: l10n.settingsLanguage),
+            const SizedBox(height: 10),
+            _OptionChips<AppLanguage>(
+              options: AppLanguage.options,
+              selected: _draft.language,
+              labelOf: (language) => _languageLabel(l10n, language),
+              onSelected: (language) =>
+                  _apply(_draft.copyWith(language: language)),
+            ),
+            const SizedBox(height: 22),
+            _SectionLabel(text: l10n.settingsBackup),
             const SizedBox(height: 4),
             ListTile(
               contentPadding: EdgeInsets.zero,
               leading: const Icon(Icons.ios_share_rounded),
-              title: const Text('导出明细记录'),
-              subtitle: const Text('导出为文件，可保存到手机或发送到微信、邮箱、网盘'),
+              title: Text(l10n.settingsExport),
+              subtitle: Text(l10n.settingsExportHint),
               onTap: _shareRecords,
             ),
             ListTile(
               contentPadding: EdgeInsets.zero,
               leading: const Icon(Icons.copy_all_rounded),
-              title: const Text('复制备份文本'),
-              subtitle: const Text('复制为文本，粘贴到备忘录或聊天窗口保存'),
+              title: Text(l10n.settingsCopyBackup),
+              subtitle: Text(l10n.settingsCopyBackupHint),
               onTap: _copyRecords,
             ),
             ListTile(
               contentPadding: EdgeInsets.zero,
               leading: const Icon(Icons.content_paste_rounded),
-              title: const Text('导入恢复'),
-              subtitle: const Text('粘贴之前导出的文本，恢复或合并明细'),
+              title: Text(l10n.settingsImport),
+              subtitle: Text(l10n.settingsImportHint),
               onTap: _importRecords,
             ),
             const SizedBox(height: 8),
@@ -273,7 +312,10 @@ class _SettingsSheetState extends State<_SettingsSheet> {
             ListTile(
               contentPadding: EdgeInsets.zero,
               leading: Icon(Icons.delete_outline_rounded, color: scheme.error),
-              title: Text('清空全部记录', style: TextStyle(color: scheme.error)),
+              title: Text(
+                l10n.settingsClearAll,
+                style: TextStyle(color: scheme.error),
+              ),
               onTap: _confirmClear,
             ),
           ],
@@ -301,16 +343,18 @@ class _SectionLabel extends StatelessWidget {
   }
 }
 
-class _OptionChips extends StatelessWidget {
+class _OptionChips<T> extends StatelessWidget {
   const _OptionChips({
     required this.options,
     required this.selected,
+    required this.labelOf,
     required this.onSelected,
   });
 
-  final List<int> options;
-  final int selected;
-  final ValueChanged<int> onSelected;
+  final List<T> options;
+  final T selected;
+  final String Function(T option) labelOf;
+  final ValueChanged<T> onSelected;
 
   @override
   Widget build(BuildContext context) {
@@ -320,7 +364,7 @@ class _OptionChips extends StatelessWidget {
       children: <Widget>[
         for (final option in options)
           ChoiceChip(
-            label: Text('$option'),
+            label: Text(labelOf(option)),
             selected: option == selected,
             onSelected: (_) => onSelected(option),
           ),
@@ -343,7 +387,7 @@ class _ImportRecordsDialogState extends State<_ImportRecordsDialog> {
   final TextEditingController _controller = TextEditingController();
 
   PracticeBackup? _backup;
-  String? _error;
+  BackupParseException? _error;
   bool _replace = false;
   bool _busy = false;
 
@@ -368,10 +412,10 @@ class _ImportRecordsDialogState extends State<_ImportRecordsDialog> {
         _backup = backup;
         _error = null;
       });
-    } on FormatException catch (error) {
+    } on BackupParseException catch (error) {
       setState(() {
         _backup = null;
-        _error = error.message;
+        _error = error;
       });
     }
   }
@@ -384,26 +428,26 @@ class _ImportRecordsDialogState extends State<_ImportRecordsDialog> {
     if (!_canSubmit || backup == null) return;
 
     if (_replace) {
+      final l10n = AppLocalizations.of(context);
       final local = widget.store.sessions.length;
       final confirmed = await showDialog<bool>(
         context: context,
         builder: (dialogContext) => AlertDialog(
-          title: const Text('覆盖现有记录？'),
+          title: Text(l10n.importReplaceTitle),
           content: Text(
-            '本地现有的 $local 条明细记录会被删除，'
-            '替换为备份里的 ${backup.sessionCount} 条。此操作无法撤销。',
+            l10n.importReplaceBody(local, backup.sessionCount),
           ),
           actions: <Widget>[
             TextButton(
               onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('取消'),
+              child: Text(l10n.cancel),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(dialogContext, true),
               style: FilledButton.styleFrom(
                 backgroundColor: Theme.of(dialogContext).colorScheme.error,
               ),
-              child: const Text('确认覆盖'),
+              child: Text(l10n.importReplaceConfirm),
             ),
           ],
         ),
@@ -419,11 +463,12 @@ class _ImportRecordsDialogState extends State<_ImportRecordsDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
 
     return AlertDialog(
       scrollable: true,
-      title: const Text('导入恢复'),
+      title: Text(l10n.importTitle),
       content: SizedBox(
         width: double.maxFinite,
         child: Column(
@@ -431,7 +476,7 @@ class _ImportRecordsDialogState extends State<_ImportRecordsDialog> {
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
             Text(
-              '把之前导出的备份文本粘贴到下面：',
+              l10n.importPasteHint,
               style: TextStyle(fontSize: 13, color: scheme.onSurfaceVariant),
             ),
             const SizedBox(height: 12),
@@ -452,16 +497,16 @@ class _ImportRecordsDialogState extends State<_ImportRecordsDialog> {
             const SizedBox(height: 12),
             SegmentedButton<bool>(
               showSelectedIcon: false,
-              segments: const <ButtonSegment<bool>>[
+              segments: <ButtonSegment<bool>>[
                 ButtonSegment<bool>(
                   value: false,
-                  label: Text('合并'),
-                  icon: Icon(Icons.call_merge_rounded, size: 18),
+                  label: Text(l10n.importMerge),
+                  icon: const Icon(Icons.call_merge_rounded, size: 18),
                 ),
                 ButtonSegment<bool>(
                   value: true,
-                  label: Text('覆盖'),
-                  icon: Icon(Icons.swap_horiz_rounded, size: 18),
+                  label: Text(l10n.importReplace),
+                  icon: const Icon(Icons.swap_horiz_rounded, size: 18),
                 ),
               ],
               selected: <bool>{_replace},
@@ -474,22 +519,23 @@ class _ImportRecordsDialogState extends State<_ImportRecordsDialog> {
       actions: <Widget>[
         TextButton(
           onPressed: _busy ? null : () => Navigator.pop(context),
-          child: const Text('取消'),
+          child: Text(l10n.cancel),
         ),
         FilledButton(
           onPressed: _canSubmit ? _submit : null,
-          child: Text(_busy ? '导入中…' : '导入'),
+          child: Text(_busy ? l10n.importBusy : l10n.importAction),
         ),
       ],
     );
   }
 
   Widget _buildPreview() {
+    final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     final error = _error;
     if (error != null) {
       return Text(
-        error,
+        backupErrorMessage(l10n, error),
         style: TextStyle(fontSize: 12.5, color: scheme.error),
       );
     }
@@ -497,14 +543,14 @@ class _ImportRecordsDialogState extends State<_ImportRecordsDialog> {
     final backup = _backup;
     if (backup == null) {
       return Text(
-        '等待粘贴…',
+        l10n.importWaiting,
         style: TextStyle(fontSize: 12.5, color: scheme.onSurfaceVariant),
       );
     }
 
     if (backup.sessionCount == 0) {
       return Text(
-        '备份里没有可导入的记录',
+        l10n.importPreviewEmpty,
         style: TextStyle(fontSize: 12.5, color: scheme.onSurfaceVariant),
       );
     }
@@ -517,20 +563,29 @@ class _ImportRecordsDialogState extends State<_ImportRecordsDialog> {
         borderRadius: BorderRadius.circular(10),
       ),
       child: Text(
-        '将导入 ${backup.sessionCount} 条记录 · ${backup.totalCount} 遍'
-        '${_describeRange(backup)}',
+        l10n.importPreview(
+          backup.sessionCount,
+          backup.totalCount,
+          _describeRange(l10n, backup),
+        ),
         style: TextStyle(fontSize: 12.5, color: scheme.primary),
       ),
     );
   }
 
-  String _describeRange(PracticeBackup backup) {
+  String _describeRange(AppLocalizations l10n, PracticeBackup backup) {
     final first = backup.firstDay;
     final last = backup.lastDay;
     if (first == null) return '';
-    final from = '${first.year}/${first.month}/${first.day}';
-    if (last == null) return '（$from）';
-    final to = '${last.year}/${last.month}/${last.day}';
-    return from == to ? '（$from）' : '（$from - $to）';
+    final from = _numericDate(first);
+    if (last == null) return l10n.importRangeSingle(from);
+    final to = _numericDate(last);
+    return from == to
+        ? l10n.importRangeSingle(from)
+        : l10n.importRangeSpan(from, to);
   }
+
+  /// 备份预览里的日期，统一写成 2026/10/13。
+  static String _numericDate(DateTime value) =>
+      '${value.year}/${value.month}/${value.day}';
 }

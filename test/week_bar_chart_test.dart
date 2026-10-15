@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ngy_zhuntifa_counter/data/practice_stats.dart';
+import 'package:ngy_zhuntifa_counter/l10n/gen/app_localizations.dart';
 import 'package:ngy_zhuntifa_counter/theme/app_theme.dart';
 import 'package:ngy_zhuntifa_counter/widgets/week_bar_chart.dart';
 
@@ -24,6 +25,9 @@ Future<void> _pumpChart(
 
   await tester.pumpWidget(
     MaterialApp(
+      locale: const Locale('zh'),
+      supportedLocales: AppLocalizations.supportedLocales,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
       theme: brightness == Brightness.dark ? AppTheme.dark() : AppTheme.light(),
       home: Scaffold(
         body: Center(

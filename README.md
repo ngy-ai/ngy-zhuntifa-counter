@@ -50,6 +50,7 @@
 - 每串念珠颗数：18 / 21 / 27 / 54 / 108。
 - 震动反馈、点击提示音开关。
 - 界面皮肤：跟随系统 / 浅色 / 深色。
+- 界面语言：跟随系统（默认）/ 简体中文 / 繁體中文 / English，切换后立即生效，并随功课数据一起保存。
 - 备份与恢复：
   - **导出明细记录**：把全部记录（含进行中的一次）复制成一段文本，可粘贴到备忘录、聊天窗口或文件中保存。
   - **导入恢复**：把这段文本粘贴回来，实时预览将导入的条数与遍数，可选「合并」（按 id 去重追加）或「覆盖」（替换本地记录，有二次确认）。
@@ -68,6 +69,33 @@
   - **深色**：墨底暖光 + 鎏金主色，计数按钮是明亮黄铜配深墨字。
 - 设置面板可切换皮肤，选择随功课数据一起持久化；切换即时生效且不影响正在进行中的计数。
 - `test/app_skin_test.dart` 会校验两套皮肤的可读性对比度（正文、按钮、念珠、图表高亮），避免改配色后文字看不清。
+
+## 多语言
+
+界面文案放在 `lib/l10n/` 的 ARB 文件里，由 Flutter 的 `gen-l10n` 生成 `AppLocalizations`：
+
+| 文件 | 语言 |
+| --- | --- |
+| `lib/l10n/app_zh.arb` | 简体中文（模板：新增文案先写在这里） |
+| `lib/l10n/app_zh_Hant.arb` | 繁体中文 |
+| `lib/l10n/app_en.arb` | 英语 |
+
+- 生成结果在 `lib/l10n/gen/`（不入库）：`flutter pub get`、`flutter run`、`flutter test` 都会自动重新生成，也可以手动跑 `flutter gen-l10n`；生成配置见根目录 `l10n.yaml`。
+- 界面里统一用 `AppLocalizations.of(context).xxx` 取文案，带数字的用占位符（如 `homeWeekCount(count)`）；英语的复数用 ICU 的 `plural` 写在 `app_en.arb` 里。
+- 日期与时长由 `lib/utils/date_formats.dart` 统一输出：日期走 `intl` 的语言数据（繁体映射到 `zh_TW`，星期写作「週二」），「今天 / 昨天」「1 小时 20 分」这类说法走 ARB 文案。新增语言通常不用改这里。
+- 语言选项在 `lib/l10n/app_language.dart`：`system`（跟随系统，默认）/ `zh` / `zhHant` / `en`。系统语言不在支持列表内时回退到简体中文（`l10n.yaml` 的 `preferred-supported-locales`）。
+- 平台侧的应用名与语言声明：Android 的桌面名称在 `android/app/src/main/res/values*/strings.xml`，iOS 在 `ios/Runner/Info.plist` 的 `CFBundleLocalizations`（需与 `AppLocalizations.supportedLocales` 一致）。iOS 的桌面名称与权限说明（`NSMicrophoneUsageDescription`）要用 `InfoPlist.strings` 才能本地化，需在 Xcode 里为各语言新建 `.lproj` 资源，暂未处理。
+
+### 新增一种语言
+
+1. 复制 `lib/l10n/app_en.arb` 为 `app_<locale>.arb`（如 `app_ja.arb`），改掉 `@@locale` 与各条文案；
+2. 在 `lib/l10n/app_language.dart` 的 `AppLanguage` 里加一个枚举值（枚举名就是存档里的取值），补上它的 `locale` 并加入 `options`；
+3. 设置面板会自动出现新选项：它取 ARB 里 `languageXxx` 的文案，补上翻译即可；
+4. 若该语言的日期数据在 `intl` 里需要特殊映射，在 `DateFormats._intlLocale` 补一条；
+5. 需要的话同步 Android `values-<locale>/strings.xml` 与 iOS `CFBundleLocalizations`；
+6. 跑 `flutter test`：`test/date_formats_test.dart` 与 `test/widget_test.dart` 覆盖了日期格式与语言切换。
+
+> 测试约定：组件测试断言的是简体中文界面，所以用例里会把语言固定成 `AppLanguage.zh`——默认语言是「跟随系统」，而测试环境的系统语言不是中文。
 
 ## 运行
 
@@ -169,21 +197,29 @@ CI 发版时从 **Settings → Secrets and variables → Actions** 读取，需�
 ```
 lib/
   main.dart                     应用入口：加载数据后启动
-  app.dart                      MaterialApp 与主题装配
+  app.dart                      MaterialApp 与主题、语言装配
   home_shell.dart               底部导航框架（首页 / 功课 / 明细）
+  l10n/
+    app_zh.arb                  简体中文文案（模板）
+    app_zh_Hant.arb             繁体中文文案
+    app_en.arb                  英语文案
+    app_language.dart           界面语言选项（跟随系统 / 简 / 繁 / 英）
+    gen/                        由 ARB 生成，不入库（pub get 自动生成）
   models/
     practice_session.dart       一次功课记录（开始、结束、遍数、逐次时间偏移）
-    practice_settings.dart      功课设置与皮肤选择
+    practice_settings.dart      功课设置：皮肤与语言选择
   data/
     practice_store.dart         数据仓库：计数、撤销、归档、删除、导入导出、持久化
     practice_stats.dart         统计推导（今日/累计/连续天数/近七日）
     practice_history.dart       明细推导（按天分组与汇总）
     practice_backup.dart        明细记录的备份格式（编解码与校验）
+    backup_error.dart           备份解析失败的原因与本地化映射
     key_value_store.dart        键值存储抽象（便于测试替换）
     practice_scope.dart         把仓库共享给组件树
   voice/
     mantra_matcher.dart         按拼音比对判断是否圆满一遍
     mantra_voice_counter.dart   语音识别控制器（持续聆听、静音续听）
+    voice_failure.dart          语音失败原因与本地化映射
   pages/
     home_page.dart              首页：统计概览
     practice_page.dart          功课页：计数
@@ -197,9 +233,10 @@ lib/
   theme/
     app_skin.dart               两套皮肤的色板与皮肤模式枚举
     app_theme.dart              由皮肤生成 Material 主题
-  utils/date_formats.dart       中文日期与时长格式化
-test/                           统计、仓库、皮肤、页面交互、语音、备份测试
+  utils/date_formats.dart       按当前语言输出日期与时长
+test/                           统计、仓库、皮肤、页面交互、语音、备份、日期与语言测试
 assets/icon/app_icon.png        应用图标源图（换图后执行 `dart run flutter_launcher_icons` 重新生成）
+l10n.yaml                       本地化生成配置（ARB 目录、模板、回退语言）
 ```
 
 ## 数据说明

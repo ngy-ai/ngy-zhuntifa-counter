@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
 
 /// 界面皮肤模式：跟随系统 / 浅色 / 深色。
+///
+/// 展示名称由界面按当前语言翻译（见设置面板），枚举本身不携带文案。
 enum AppSkinMode {
-  system('跟随系统'),
-  light('浅色'),
-  dark('深色');
-
-  const AppSkinMode(this.label);
-
-  final String label;
+  system,
+  light,
+  dark;
 
   ThemeMode get themeMode => switch (this) {
     AppSkinMode.system => ThemeMode.system,

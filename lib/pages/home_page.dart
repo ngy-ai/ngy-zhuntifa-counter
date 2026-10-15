@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../data/practice_scope.dart';
 import '../data/practice_stats.dart';
+import '../l10n/gen/app_localizations.dart';
 import '../models/practice_session.dart';
 import '../theme/app_skin.dart';
 import '../utils/date_formats.dart';
@@ -65,6 +66,7 @@ class _TodayCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final skin = AppSkin.of(context);
     final goal = stats.dailyGoal;
     final remaining = (goal - stats.todayCount).clamp(0, goal);
@@ -86,7 +88,7 @@ class _TodayCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Text(
-            '今日持咒 · ${DateFormats.fullDate(now)}',
+            l10n.homeTodayHeader(DateFormats.fullDate(context, now)),
             style: TextStyle(fontSize: 12.5, color: skin.heroMuted),
           ),
           const SizedBox(height: 14),
@@ -112,7 +114,7 @@ class _TodayCard extends StatelessWidget {
                             ),
                           ),
                           TextSpan(
-                            text: ' 遍',
+                            text: ' ${l10n.unitCount}',
                             style: TextStyle(
                               fontSize: 14,
                               color: skin.heroMuted,
@@ -124,8 +126,8 @@ class _TodayCard extends StatelessWidget {
                     const SizedBox(height: 6),
                     Text(
                       stats.goalReached
-                          ? '今日目标 $goal 遍已达成，随喜'
-                          : '距今日目标还差 $remaining 遍',
+                          ? l10n.homeGoalReached(goal)
+                          : l10n.homeGoalRemaining(remaining),
                       style: TextStyle(fontSize: 12.5, color: skin.heroMuted),
                     ),
                   ],
@@ -178,12 +180,15 @@ class _TodayCard extends StatelessWidget {
                 foregroundColor: skin.heroButtonForeground,
                 minimumSize: const Size.fromHeight(46),
               ),
-              child: const Row(
+              child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: <Widget>[
-                  Icon(Icons.self_improvement_rounded, size: 18),
-                  SizedBox(width: 8),
-                  Text('开始持咒', style: TextStyle(fontWeight: FontWeight.w600)),
+                  const Icon(Icons.self_improvement_rounded, size: 18),
+                  const SizedBox(width: 8),
+                  Text(
+                    l10n.homeStartPractice,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
                 ],
               ),
             ),
@@ -202,6 +207,7 @@ class _StatsGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final skin = AppSkin.of(context);
     return Column(
       children: <Widget>[
@@ -212,23 +218,23 @@ class _StatsGrid extends StatelessWidget {
               Expanded(
                 child: StatTile(
                   icon: Icons.graphic_eq_rounded,
-                  label: '累计持咒',
+                  label: l10n.totalCountLabel,
                   value: '${stats.totalCount}',
-                  unit: '遍',
-                  caption: '共 ${stats.activeDays} 天有记录',
+                  unit: l10n.unitCount,
+                  caption: l10n.homeDaysWithRecord(stats.activeDays),
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: StatTile(
                   icon: Icons.local_fire_department_rounded,
-                  label: '连续持咒',
+                  label: l10n.homeStreak,
                   value: '${stats.streakDays}',
-                  unit: '天',
+                  unit: l10n.unitDay,
                   accent: skin.saffron,
                   caption: stats.streakDays > 1
-                      ? '保持相续，勿令间断'
-                      : '今日已开始用功',
+                      ? l10n.homeStreakKeep
+                      : l10n.homeStreakStarted,
                 ),
               ),
             ],
@@ -242,24 +248,24 @@ class _StatsGrid extends StatelessWidget {
               Expanded(
                 child: StatTile(
                   icon: Icons.event_available_rounded,
-                  label: '累计功课天数',
+                  label: l10n.homeActiveDays,
                   value: '${stats.activeDays}',
-                  unit: '天',
+                  unit: l10n.unitDay,
                   accent: skin.jade,
-                  caption: '近七日 ${stats.weekCount} 遍',
+                  caption: l10n.homeWeekCount(stats.weekCount),
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: StatTile(
                   icon: Icons.emoji_events_rounded,
-                  label: '单日最高',
+                  label: l10n.homeBestDay,
                   value: '${stats.bestDayCount}',
-                  unit: '遍',
+                  unit: l10n.unitCount,
                   accent: skin.primary,
                   caption: stats.bestDay == null
-                      ? '还没有记录'
-                      : DateFormats.friendlyDay(stats.bestDay!, now),
+                      ? l10n.homeNoRecord
+                      : DateFormats.friendlyDay(context, stats.bestDay!, now),
                 ),
               ),
             ],
@@ -278,6 +284,7 @@ class _WeekCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     return Card(
       child: Padding(
@@ -287,14 +294,17 @@ class _WeekCard extends StatelessWidget {
           children: <Widget>[
             Row(
               children: <Widget>[
-                const Expanded(
+                Expanded(
                   child: Text(
-                    '近七日',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                    l10n.homeLast7Days,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
                 Text(
-                  '合计 ${stats.weekCount} 遍',
+                  l10n.homeWeekTotal(stats.weekCount),
                   style: TextStyle(
                     fontSize: 12.5,
                     color: scheme.onSurfaceVariant,
@@ -324,6 +334,7 @@ class _RecentCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     final sessions = stats.recentSessions;
 
@@ -335,10 +346,10 @@ class _RecentCard extends StatelessWidget {
           children: <Widget>[
             Row(
               children: <Widget>[
-                const Expanded(
+                Expanded(
                   child: Text(
-                    '最近功课',
-                    style: TextStyle(
+                    l10n.homeRecentSessions,
+                    style: const TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
                     ),
@@ -353,7 +364,7 @@ class _RecentCard extends StatelessWidget {
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
                   child: Text(
-                    '全部明细',
+                    l10n.homeViewAll,
                     style: TextStyle(fontSize: 13, color: scheme.primary),
                   ),
                 ),
@@ -365,7 +376,7 @@ class _RecentCard extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(vertical: 18),
                 child: Center(
                   child: Text(
-                    '还没有功课记录，去持咒吧',
+                    l10n.homeNoSessions,
                     style: TextStyle(
                       fontSize: 13,
                       color: scheme.onSurfaceVariant,
@@ -394,6 +405,7 @@ class _RecentTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12),
@@ -418,7 +430,7 @@ class _RecentTile extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 Text(
-                  '${DateFormats.friendlyDay(session.startAt, now)} '
+                  '${DateFormats.friendlyDay(context, session.startAt, now)} '
                   '${DateFormats.hourMinute(session.startAt)}',
                   style: const TextStyle(
                     fontSize: 14,
@@ -427,14 +439,16 @@ class _RecentTile extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '持续 ${DateFormats.duration(session.duration)}',
+                  l10n.durationLine(
+                    DateFormats.duration(context, session.duration),
+                  ),
                   style: TextStyle(fontSize: 12, color: scheme.outline),
                 ),
               ],
             ),
           ),
           Text(
-            '${session.count} 遍',
+            l10n.countTimes(session.count),
             style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w700,

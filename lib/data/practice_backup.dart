@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import '../models/practice_session.dart';
+import 'backup_error.dart';
 
 /// 明细记录的备份：把全部功课记录编码成一段可粘贴的 JSON 文本。
 ///
@@ -36,49 +37,60 @@ class PracticeBackup {
     });
   }
 
-  /// 解析备份文本，格式不对时抛出 [FormatException]（中文说明可直接展示）。
+  /// 解析备份文本，格式不对时抛出 [BackupParseException]。
+  ///
+  /// 异常只带原因（[BackupParseException.code]），由界面按当前语言展示。
   static PracticeBackup parse(String text) {
     final trimmed = text.trim();
     if (trimmed.isEmpty) {
-      throw const FormatException('备份内容为空，请先把导出的文本粘贴进来');
+      throw BackupParseException(BackupError.empty);
     }
 
     Object? decoded;
     try {
       decoded = jsonDecode(trimmed);
     } on FormatException {
-      throw const FormatException('不是有效的备份文本（JSON 解析失败）');
+      throw BackupParseException(BackupError.invalidJson);
     }
     if (decoded is! Map<String, dynamic>) {
-      throw const FormatException('备份格式不对，应为一段备份文本');
+      throw BackupParseException(BackupError.wrongFormat);
     }
 
     final app = decoded['app'];
     if (app is String && app != appTag) {
-      throw const FormatException('这不是准提法计数器的备份');
+      throw BackupParseException(BackupError.wrongApp);
     }
 
     final versionValue = decoded['version'];
     if (versionValue is num && versionValue > version) {
-      throw FormatException('备份来自更新的版本（v$versionValue），请先升级应用');
+      throw BackupParseException(
+        BackupError.newerVersion,
+        detail: versionValue,
+      );
     }
 
     final rawSessions = decoded['sessions'];
     if (rawSessions is! List) {
-      throw const FormatException('备份里缺少明细记录');
+      throw BackupParseException(BackupError.missingSessions);
     }
 
     final sessions = <PracticeSession>[];
     for (var index = 0; index < rawSessions.length; index++) {
       final item = rawSessions[index];
       if (item is! Map<String, dynamic>) {
-        throw FormatException('第 ${index + 1} 条明细记录格式不对');
+        throw BackupParseException(
+          BackupError.sessionFormat,
+          detail: index + 1,
+        );
       }
       final PracticeSession session;
       try {
         session = PracticeSession.fromJson(item);
       } catch (_) {
-        throw FormatException('第 ${index + 1} 条明细记录解析失败');
+        throw BackupParseException(
+          BackupError.sessionParse,
+          detail: index + 1,
+        );
       }
       if (session.isEffective) sessions.add(session);
     }

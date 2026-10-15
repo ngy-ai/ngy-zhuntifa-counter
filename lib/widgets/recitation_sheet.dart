@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/gen/app_localizations.dart';
 import '../models/practice_session.dart';
 import '../theme/app_skin.dart';
 import '../utils/date_formats.dart';
@@ -30,28 +31,32 @@ class _RecitationSheet extends StatelessWidget {
   final bool isOngoing;
 
   Future<void> _requestDelete(BuildContext context) async {
+    final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: Text(isOngoing ? '放弃本次功课？' : '删除这条记录？'),
+        title: Text(
+          isOngoing ? l10n.sessionDiscardTitle : l10n.recordDeleteTitle,
+        ),
         content: Text(
           isOngoing
-              ? '这次功课还没结束，放弃后当前累计的 ${session.count} 遍会被丢弃，'
-                    '且不会写入明细。'
-              : '${DateFormats.monthDay(session.startAt)} '
-                    '${DateFormats.timeRange(session.startAt, session.endAt)} '
-                    '的 ${session.count} 遍将从统计中扣除。',
+              ? l10n.sessionDiscardBody(session.count)
+              : l10n.recordDeleteBody(
+                  DateFormats.monthDay(context, session.startAt),
+                  DateFormats.timeRange(session.startAt, session.endAt),
+                  session.count,
+                ),
         ),
         actions: <Widget>[
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('取消'),
+            child: Text(l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(dialogContext, true),
             style: FilledButton.styleFrom(backgroundColor: scheme.error),
-            child: Text(isOngoing ? '放弃' : '删除'),
+            child: Text(isOngoing ? l10n.discard : l10n.delete),
           ),
         ],
       ),
@@ -63,6 +68,7 @@ class _RecitationSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final skin = AppSkin.of(context);
     final times = session.markTimes;
     final averageGap = times.length > 1
@@ -85,8 +91,7 @@ class _RecitationSheet extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 Text(
-                  '${DateFormats.monthDay(session.startAt)} '
-                  '星期${DateFormats.weekday(session.startAt)}',
+                  DateFormats.monthDayWeekday(context, session.startAt),
                   style: const TextStyle(
                     fontSize: 17,
                     fontWeight: FontWeight.w700,
@@ -94,8 +99,10 @@ class _RecitationSheet extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  '${DateFormats.timeRange(session.startAt, session.endAt)}'
-                  ' · 持续 ${DateFormats.duration(session.duration)}',
+                  l10n.sessionSubtitle(
+                    DateFormats.timeRange(session.startAt, session.endAt),
+                    DateFormats.duration(context, session.duration),
+                  ),
                   style: TextStyle(
                     fontSize: 12.5,
                     color: skin.onSurfaceVariant,
@@ -104,16 +111,19 @@ class _RecitationSheet extends StatelessWidget {
                 const SizedBox(height: 16),
                 Row(
                   children: <Widget>[
-                    _Metric(label: '总遍数', value: '${session.count} 遍'),
                     _Metric(
-                      label: '持续',
-                      value: DateFormats.shortSpan(session.duration),
+                      label: l10n.metricTotal,
+                      value: l10n.countTimes(session.count),
                     ),
                     _Metric(
-                      label: '平均间隔',
+                      label: l10n.metricDuration,
+                      value: DateFormats.shortSpan(context, session.duration),
+                    ),
+                    _Metric(
+                      label: l10n.metricAverageGap,
                       value: averageGap == null
                           ? '—'
-                          : DateFormats.shortSpan(averageGap),
+                          : DateFormats.shortSpan(context, averageGap),
                     ),
                   ],
                 ),
@@ -132,7 +142,7 @@ class _RecitationSheet extends StatelessWidget {
                   Row(
                     children: <Widget>[
                       Text(
-                        '逐次时间',
+                        l10n.sheetMarkTimes,
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
@@ -141,7 +151,7 @@ class _RecitationSheet extends StatelessWidget {
                       ),
                       const Spacer(),
                       Text(
-                        '共 ${times.length} 遍',
+                        l10n.sheetMarkCount(times.length),
                         style: TextStyle(fontSize: 12, color: skin.outline),
                       ),
                     ],
@@ -150,8 +160,7 @@ class _RecitationSheet extends StatelessWidget {
                   if (times.length != session.count) ...<Widget>[
                     const SizedBox(height: 4),
                     Text(
-                      '本次共 ${session.count} 遍，其中 ${times.length} 遍有时间点，'
-                      '其余为此前版本所记',
+                      l10n.sheetLegacyMarks(session.count, times.length),
                       style: TextStyle(fontSize: 11.5, color: skin.outline),
                     ),
                   ],
@@ -183,7 +192,9 @@ class _RecitationSheet extends StatelessWidget {
                 child: OutlinedButton.icon(
                   onPressed: () => _requestDelete(context),
                   icon: const Icon(Icons.delete_outline_rounded, size: 18),
-                  label: Text(isOngoing ? '放弃本次功课' : '删除这条记录'),
+                  label: Text(
+                    isOngoing ? l10n.sessionDiscard : l10n.recordDelete,
+                  ),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: Theme.of(context).colorScheme.error,
                   ),
@@ -242,6 +253,7 @@ class _MarkRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final skin = AppSkin.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 11),
@@ -250,7 +262,7 @@ class _MarkRow extends StatelessWidget {
           SizedBox(
             width: 68,
             child: Text(
-              '第 ${index + 1} 遍',
+              l10n.sheetMarkIndex(index + 1),
               style: TextStyle(fontSize: 12.5, color: skin.onSurfaceVariant),
             ),
           ),
@@ -267,7 +279,7 @@ class _MarkRow extends StatelessWidget {
           ),
           if (gap != null)
             Text(
-              '+${DateFormats.shortSpan(gap!)}',
+              '+${DateFormats.shortSpan(context, gap!)}',
               style: TextStyle(
                 fontSize: 12,
                 color: skin.outline,
@@ -287,6 +299,7 @@ class _NoMarksNotice extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final skin = AppSkin.of(context);
     return Center(
       child: Padding(
@@ -297,7 +310,7 @@ class _NoMarksNotice extends StatelessWidget {
             Icon(Icons.schedule_outlined, size: 40, color: skin.outlineVariant),
             const SizedBox(height: 14),
             Text(
-              '这条记录只有总遍数',
+              l10n.sheetOnlyTotalTitle,
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
@@ -306,7 +319,7 @@ class _NoMarksNotice extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Text(
-              '逐次时间点是从之后的版本开始记录的，\n此前的记录无法回溯补全。',
+              l10n.sheetOnlyTotalHint,
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 12.5, color: skin.onSurfaceVariant),
             ),

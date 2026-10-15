@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../l10n/gen/app_localizations.dart';
 import '../theme/app_skin.dart';
 
 /// 持咒计数表盘：中心是大号计数按钮，外圈是一串念珠，显示本串进度。
@@ -139,11 +140,12 @@ class _DialLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
         Text(
-          '本次',
+          l10n.practiceSessionLabel,
           style: TextStyle(fontSize: 13, letterSpacing: 6, color: muted),
         ),
         const SizedBox(height: 2),
@@ -157,7 +159,7 @@ class _DialLabel extends StatelessWidget {
             fontFeatures: const <FontFeature>[FontFeature.tabularFigures()],
           ),
         ),
-        Text('遍', style: TextStyle(fontSize: 13, color: muted)),
+        Text(l10n.unitCount, style: TextStyle(fontSize: 13, color: muted)),
         SizedBox(height: scale * 0.1),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),

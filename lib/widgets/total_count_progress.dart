@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../data/practice_scope.dart';
+import '../l10n/gen/app_localizations.dart';
 import '../theme/app_skin.dart';
 
 /// 累计持咒进度条：标题栏下方常驻，首页 / 功课 / 明细共用。
@@ -14,6 +15,7 @@ class TotalCountProgress extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final skin = AppSkin.of(context);
     final scheme = Theme.of(context).colorScheme;
     final totalCount = PracticeScope.of(context).stats().totalCount;
@@ -33,7 +35,7 @@ class TotalCountProgress extends StatelessWidget {
           Row(
             children: <Widget>[
               Text(
-                '累计持咒',
+                l10n.totalCountLabel,
                 style: TextStyle(fontSize: 12.5, color: scheme.onSurfaceVariant),
               ),
               const SizedBox(width: 10),
@@ -58,7 +60,10 @@ class TotalCountProgress extends StatelessWidget {
                           ],
                         ),
                       ),
-                      TextSpan(text: ' / ${_thousands(targetCount)} 遍'),
+                      TextSpan(
+                        text:
+                            ' / ${_thousands(targetCount)} ${l10n.unitCount}',
+                      ),
                     ],
                   ),
                 ),

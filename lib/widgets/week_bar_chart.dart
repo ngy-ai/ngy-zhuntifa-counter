@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../data/practice_stats.dart';
+import '../l10n/gen/app_localizations.dart';
 import '../theme/app_skin.dart';
 import '../utils/date_formats.dart';
 
@@ -130,7 +131,9 @@ class _Bar extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Text(
-          isToday ? '今日' : '周${DateFormats.weekday(day.date)}',
+          isToday
+              ? AppLocalizations.of(context).chartToday
+              : DateFormats.weekdayShort(context, day.date),
           style: TextStyle(
             fontSize: 11,
             fontWeight: isToday ? FontWeight.w600 : FontWeight.w400,

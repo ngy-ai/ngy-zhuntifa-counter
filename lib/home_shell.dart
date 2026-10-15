@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import 'data/practice_scope.dart';
+import 'l10n/gen/app_localizations.dart';
 import 'pages/history_page.dart';
 import 'pages/home_page.dart';
 import 'pages/practice_page.dart';
@@ -18,8 +19,6 @@ class HomeShell extends StatefulWidget {
 }
 
 class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
-  static const List<String> _titles = <String>['准提法计数器', '持咒功课', '功课明细'];
-
   int _index = 0;
   Timer? _ticker;
 
@@ -52,13 +51,19 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     final store = PracticeScope.of(context);
+    final l10n = AppLocalizations.of(context);
+    final titles = <String>[
+      l10n.appTitle,
+      l10n.practiceTitle,
+      l10n.historyTitle,
+    ];
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(_titles[_index]),
+        title: Text(titles[_index]),
         actions: <Widget>[
           IconButton(
-            tooltip: '功课设置',
+            tooltip: l10n.openSettings,
             icon: const Icon(Icons.tune_rounded),
             onPressed: () => showPracticeSettings(context, store),
           ),
@@ -85,21 +90,21 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
       bottomNavigationBar: NavigationBar(
         selectedIndex: _index,
         onDestinationSelected: _goTo,
-        destinations: const <NavigationDestination>[
+        destinations: <NavigationDestination>[
           NavigationDestination(
-            icon: Icon(Icons.insights_outlined),
-            selectedIcon: Icon(Icons.insights_rounded),
-            label: '首页',
+            icon: const Icon(Icons.insights_outlined),
+            selectedIcon: const Icon(Icons.insights_rounded),
+            label: l10n.navHome,
           ),
           NavigationDestination(
-            icon: Icon(Icons.self_improvement_outlined),
-            selectedIcon: Icon(Icons.self_improvement_rounded),
-            label: '功课',
+            icon: const Icon(Icons.self_improvement_outlined),
+            selectedIcon: const Icon(Icons.self_improvement_rounded),
+            label: l10n.navPractice,
           ),
           NavigationDestination(
-            icon: Icon(Icons.receipt_long_outlined),
-            selectedIcon: Icon(Icons.receipt_long_rounded),
-            label: '明细',
+            icon: const Icon(Icons.receipt_long_outlined),
+            selectedIcon: const Icon(Icons.receipt_long_rounded),
+            label: l10n.navHistory,
           ),
         ],
       ),

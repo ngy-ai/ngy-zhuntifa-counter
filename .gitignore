@@ -33,6 +33,9 @@ migrate_working_dir/
 /build/
 /coverage/
 
+# 由 lib/l10n/*.arb 生成的本地化代码（pub get / flutter run 会自动重新生成）
+/lib/l10n/gen/
+
 # Symbolication related
 app.*.symbols
 

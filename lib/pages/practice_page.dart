@@ -6,8 +6,10 @@ import 'package:flutter/services.dart';
 import '../data/practice_scope.dart';
 import '../data/practice_stats.dart';
 import '../data/practice_store.dart';
+import '../l10n/gen/app_localizations.dart';
 import '../theme/app_skin.dart';
 import '../voice/mantra_voice_counter.dart';
+import '../voice/voice_failure.dart';
 import '../widgets/practice_dial.dart';
 
 /// 功课页面：每念一遍准提咒点一次计数，也可以开启语音自动计数。
@@ -84,7 +86,11 @@ class _PracticePageState extends State<PracticePage>
       unawaited(SystemSound.play(SystemSoundType.click));
     }
     if (completedBead) {
-      _toast('第 ${count ~/ beadCount} 串圆满 · 继续精进');
+      _toast(
+        AppLocalizations.of(
+          context,
+        ).practiceBeadRound(count ~/ beadCount),
+      );
     }
   }
 
@@ -96,8 +102,13 @@ class _PracticePageState extends State<PracticePage>
       _voice.onRecitation = () => _registerRecitation(store, fromVoice: true);
       await _voice.start();
       if (!mounted) return;
-      final error = _voice.error;
-      _toast(error ?? '语音计数已开启，念完一遍会自动记数');
+      final l10n = AppLocalizations.of(context);
+      final failure = _voice.failure;
+      _toast(
+        failure == null
+            ? l10n.practiceVoiceStarted
+            : voiceFailureMessage(l10n, failure, _voice.failureDetail),
+      );
     } else {
       await _voice.stop();
     }
@@ -116,7 +127,7 @@ class _PracticePageState extends State<PracticePage>
     final count = store.currentCount;
     final finished = store.finishCurrent();
     if (finished == null) return;
-    _toast('本次功课 $count 遍已记入');
+    _toast(AppLocalizations.of(context).practiceSessionSaved(count));
   }
 
   void _toast(String message) {
@@ -132,11 +143,13 @@ class _PracticePageState extends State<PracticePage>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final store = PracticeScope.of(context);
     final stats = store.stats();
     final sessionCount = store.currentCount;
     final beadCount = store.settings.beadCount;
     final hasSession = sessionCount > 0;
+    final failure = _voice.failure;
 
     return SafeArea(
       child: Padding(
@@ -157,7 +170,9 @@ class _PracticePageState extends State<PracticePage>
             _VoiceBar(
               listening: _voice.isActive,
               lastHeard: _voice.lastHeard,
-              error: _voice.error,
+              error: failure == null
+                  ? null
+                  : voiceFailureMessage(l10n, failure, _voice.failureDetail),
               busy: _voiceBusy,
               onChanged: (value) => unawaited(_toggleVoice(store, value)),
             ),
@@ -168,7 +183,7 @@ class _PracticePageState extends State<PracticePage>
                   child: OutlinedButton.icon(
                     onPressed: hasSession ? () => _undo(store) : null,
                     icon: const Icon(Icons.undo_rounded, size: 18),
-                    label: const Text('撤销一次'),
+                    label: Text(l10n.practiceUndo),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -176,7 +191,7 @@ class _PracticePageState extends State<PracticePage>
                   child: FilledButton.icon(
                     onPressed: hasSession ? () => _finish(store) : null,
                     icon: const Icon(Icons.check_rounded, size: 18),
-                    label: const Text('结束本次'),
+                    label: Text(l10n.practiceFinish),
                   ),
                 ),
               ],
@@ -206,6 +221,7 @@ class _VoiceBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final skin = AppSkin.of(context);
     final scheme = Theme.of(context).colorScheme;
     final message = error;
@@ -213,16 +229,16 @@ class _VoiceBar extends StatelessWidget {
     final String title;
     final String subtitle;
     if (message != null) {
-      title = '语音计数不可用';
+      title = l10n.voiceUnavailableTitle;
       subtitle = message;
     } else if (listening) {
-      title = '正在聆听';
+      title = l10n.voiceListeningTitle;
       subtitle = lastHeard.isEmpty
-          ? '念完一遍准提咒会自动记数，念诵时留意上方的遍数变化'
-          : '听到：$lastHeard';
+          ? l10n.voiceListeningHint
+          : l10n.voiceHeard(lastHeard);
     } else {
-      title = '语音计数';
-      subtitle = '点按钮计数，开启后可语音自动记数';
+      title = l10n.voiceTitle;
+      subtitle = l10n.voiceIdleHint;
     }
 
     return Container(
@@ -293,29 +309,30 @@ class _SummaryBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Row(
       children: <Widget>[
         Expanded(
           child: _SummaryItem(
-            label: '今日持咒',
+            label: l10n.practiceTodayCount,
             value: '${stats.todayCount}',
-            unit: '遍',
+            unit: l10n.unitCount,
           ),
         ),
         const _SummaryDivider(),
         Expanded(
           child: _SummaryItem(
-            label: '今日圆满',
+            label: l10n.practiceTodayRounds,
             value: '${stats.todayBeads}',
-            unit: '串',
+            unit: l10n.unitRound,
           ),
         ),
         const _SummaryDivider(),
         Expanded(
           child: _SummaryItem(
-            label: '连续持咒',
+            label: l10n.homeStreak,
             value: '${stats.streakDays}',
-            unit: '天',
+            unit: l10n.unitDay,
           ),
         ),
       ],

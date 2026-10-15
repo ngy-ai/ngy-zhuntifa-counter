@@ -8,6 +8,14 @@
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
 	<string>准提法计数器</string>
+	<!-- 支持的语言：与 AppLocalizations.supportedLocales 保持一致，
+	     系统才会把设备的首选语言传给应用（「跟随系统」依赖它） -->
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>zh</string>
+		<string>zh-Hant</string>
+		<string>en</string>
+	</array>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>开启语音计数后，需要麦克风聆听持咒语音，以便自动记录遍数。</string>
 	<key>NSSpeechRecognitionUsageDescription</key>

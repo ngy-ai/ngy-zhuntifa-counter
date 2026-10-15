@@ -1,0 +1,14 @@
+# 多语言配置：修改 lib/l10n/*.arb 后由 Flutter 自动生成 AppLocalizations。
+#
+# 新增一种语言：在 lib/l10n/ 下添加 app_<locale>.arb（例如 app_ja.arb），
+# 复制 app_en.arb 的键并翻译即可，随后在 AppLanguage 里登记该语言。
+arb-dir: lib/l10n
+template-arb-file: app_zh.arb
+output-localization-file: app_localizations.dart
+output-dir: lib/l10n/gen
+output-class: AppLocalizations
+# AppLocalizations.of(context) 直接返回非空对象
+nullable-getter: false
+# 系统语言不在支持列表内时回退到简体中文
+preferred-supported-locales:
+  - zh

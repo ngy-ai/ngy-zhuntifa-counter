@@ -4,18 +4,21 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:ngy_zhuntifa_counter/app.dart';
 import 'package:ngy_zhuntifa_counter/data/practice_backup.dart';
 import 'package:ngy_zhuntifa_counter/data/practice_store.dart';
+import 'package:ngy_zhuntifa_counter/l10n/app_language.dart';
 import 'package:ngy_zhuntifa_counter/models/practice_settings.dart';
 import 'package:ngy_zhuntifa_counter/theme/app_skin.dart';
 import 'package:ngy_zhuntifa_counter/widgets/practice_dial.dart';
 
 import 'memory_key_value_store.dart';
 
+/// 语言固定为简体中文：默认是「跟随系统」，而测试环境的系统语言不是中文，
+/// 这些用例断言的都是简体中文界面文案。
 Future<PracticeStore> _storeWith([PracticeSettings? settings]) async {
   final store = PracticeStore(storage: MemoryKeyValueStore());
   await store.load();
-  if (settings != null) {
-    await store.updateSettings(settings);
-  }
+  await store.updateSettings(
+    (settings ?? const PracticeSettings()).copyWith(language: AppLanguage.zh),
+  );
   return store;
 }
 
@@ -75,6 +78,9 @@ void main() {
     final storage = MemoryKeyValueStore();
     final store = PracticeStore(storage: storage);
     await store.load();
+    await store.updateSettings(
+      const PracticeSettings(language: AppLanguage.zh),
+    );
 
     await tester.pumpWidget(ZhuntiCounterApp(store: store));
     expect(
@@ -116,6 +122,50 @@ void main() {
     final reloaded = PracticeStore(storage: storage);
     await reloaded.load();
     expect(reloaded.settings.skinMode, AppSkinMode.light);
+    reloaded.dispose();
+
+    await _teardown(tester, store);
+  });
+
+  testWidgets('默认跟随系统语言，切换语言立即生效并写入存档', (WidgetTester tester) async {
+    // 显式把系统语言设成英语，验证「跟随系统」这一默认行为
+    tester.platformDispatcher.localesTestValue = const <Locale>[
+      Locale('en', 'US'),
+    ];
+    addTearDown(tester.platformDispatcher.clearLocalesTestValue);
+
+    final storage = MemoryKeyValueStore();
+    final store = PracticeStore(storage: storage);
+    await store.load();
+
+    await tester.pumpWidget(ZhuntiCounterApp(store: store));
+    expect(store.settings.language, AppLanguage.system);
+    expect(find.text('Home'), findsOneWidget);
+    expect(find.textContaining('Today ·'), findsOneWidget);
+
+    await tester.tap(find.byIcon(Icons.tune_rounded));
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(find.text('繁體中文'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('繁體中文'));
+    await tester.pumpAndSettle();
+
+    expect(store.settings.language, AppLanguage.zhHant);
+    expect(find.text('首頁'), findsOneWidget);
+    expect(find.textContaining('今日持咒 ·'), findsOneWidget);
+
+    await tester.tap(find.text('简体中文'));
+    await tester.pumpAndSettle();
+
+    expect(store.settings.language, AppLanguage.zh);
+    expect(find.text('首页'), findsOneWidget);
+    expect(find.textContaining('今日持咒 ·'), findsOneWidget);
+
+    // 语言选择随功课数据一起持久化
+    final reloaded = PracticeStore(storage: storage);
+    await reloaded.load();
+    expect(reloaded.settings.language, AppLanguage.zh);
     reloaded.dispose();
 
     await _teardown(tester, store);

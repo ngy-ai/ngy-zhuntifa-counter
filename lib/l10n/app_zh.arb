@@ -1,0 +1,359 @@
+{
+  "@@locale": "zh",
+
+  "appTitle": "准提法计数器",
+  "navHome": "首页",
+  "navPractice": "功课",
+  "navHistory": "明细",
+  "practiceTitle": "持咒功课",
+  "historyTitle": "功课明细",
+  "openSettings": "功课设置",
+
+  "cancel": "取消",
+  "delete": "删除",
+  "discard": "放弃",
+  "confirmOk": "好的",
+  "unitCount": "遍",
+  "unitDay": "天",
+  "unitSession": "次",
+  "unitRound": "串",
+  "today": "今天",
+  "yesterday": "昨天",
+  "dayBeforeYesterday": "前天",
+
+  "totalCountLabel": "累计持咒",
+  "durationLine": "持续 {duration}",
+  "@durationLine": {
+    "placeholders": { "duration": { "type": "String" } }
+  },
+  "countTimes": "{count} 遍",
+  "@countTimes": {
+    "description": "「N 遍」的通用组合，如「3 遍」",
+    "placeholders": { "count": { "type": "int" } }
+  },
+
+  "homeTodayHeader": "今日持咒 · {date}",
+  "@homeTodayHeader": {
+    "placeholders": { "date": { "type": "String" } }
+  },
+  "homeGoalReached": "今日目标 {goal} 遍已达成，随喜",
+  "@homeGoalReached": {
+    "placeholders": { "goal": { "type": "int" } }
+  },
+  "homeGoalRemaining": "距今日目标还差 {remaining} 遍",
+  "@homeGoalRemaining": {
+    "placeholders": { "remaining": { "type": "int" } }
+  },
+  "homeStartPractice": "开始持咒",
+  "homeDaysWithRecord": "共 {days} 天有记录",
+  "@homeDaysWithRecord": {
+    "placeholders": { "days": { "type": "int" } }
+  },
+  "homeStreak": "连续持咒",
+  "homeStreakKeep": "保持相续，勿令间断",
+  "homeStreakStarted": "今日已开始用功",
+  "homeActiveDays": "累计功课天数",
+  "homeWeekCount": "近七日 {count} 遍",
+  "@homeWeekCount": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "homeBestDay": "单日最高",
+  "homeNoRecord": "还没有记录",
+  "homeLast7Days": "近七日",
+  "homeWeekTotal": "合计 {count} 遍",
+  "@homeWeekTotal": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "homeRecentSessions": "最近功课",
+  "homeViewAll": "全部明细",
+  "homeNoSessions": "还没有功课记录，去持咒吧",
+
+  "practiceBeadRound": "第 {round} 串圆满 · 继续精进",
+  "@practiceBeadRound": {
+    "placeholders": { "round": { "type": "int" } }
+  },
+  "practiceVoiceStarted": "语音计数已开启，念完一遍会自动记数",
+  "practiceSessionSaved": "本次功课 {count} 遍已记入",
+  "@practiceSessionSaved": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "practiceUndo": "撤销一次",
+  "practiceFinish": "结束本次",
+  "practiceTodayCount": "今日持咒",
+  "practiceTodayRounds": "今日圆满",
+  "practiceSessionLabel": "本次",
+
+  "voiceTitle": "语音计数",
+  "voiceUnavailableTitle": "语音计数不可用",
+  "voiceListeningTitle": "正在聆听",
+  "voiceIdleHint": "点按钮计数，开启后可语音自动记数",
+  "voiceListeningHint": "念完一遍准提咒会自动记数，念诵时留意上方的遍数变化",
+  "voiceHeard": "听到：{text}",
+  "@voiceHeard": {
+    "placeholders": { "text": { "type": "String" } }
+  },
+  "voiceErrorUnavailable": "无法使用语音识别，请检查麦克风权限与系统语音服务",
+  "voiceErrorStartFailed": "语音识别启动失败：{detail}",
+  "@voiceErrorStartFailed": {
+    "placeholders": { "detail": { "type": "String" } }
+  },
+  "voiceErrorInterrupted": "语音识别中断：{detail}",
+  "@voiceErrorInterrupted": {
+    "placeholders": { "detail": { "type": "String" } }
+  },
+  "voiceErrorPermission": "没有麦克风或语音识别权限，请在系统设置里开启后重试",
+  "voiceErrorBusy": "语音识别被其他应用占用，请稍后重试",
+  "voiceErrorNetwork": "语音识别需要网络，请检查网络后重试",
+  "voiceErrorUnknown": "语音识别出错（{code}）",
+  "@voiceErrorUnknown": {
+    "placeholders": { "code": { "type": "String" } }
+  },
+
+  "historyMonthTitle": "{yearMonth} 功课",
+  "@historyMonthTitle": {
+    "placeholders": { "yearMonth": { "type": "String" } }
+  },
+  "historyMonthTotal": "本月合计",
+  "historyMonthDays": "本月用功",
+  "historyTotalSessions": "累计功课",
+  "historyTotalLine": "累计 {total} 遍 · {days} 天有记录",
+  "@historyTotalLine": {
+    "placeholders": {
+      "total": { "type": "int" },
+      "days": { "type": "int" }
+    }
+  },
+  "historyOngoing": "进行中",
+  "historyEmptyTitle": "还没有功课明细",
+  "historyEmptyHint": "每完成一次功课，这里就会留下一条记录",
+  "historyGoPractice": "去持咒",
+
+  "recordDeleteTitle": "删除这条记录？",
+  "recordDeleteBody": "{date} {time} 的 {count} 遍将从统计中扣除。",
+  "@recordDeleteBody": {
+    "placeholders": {
+      "date": { "type": "String" },
+      "time": { "type": "String" },
+      "count": { "type": "int" }
+    }
+  },
+  "recordDeleted": "已删除这条记录",
+  "recordDelete": "删除这条记录",
+  "sessionDiscarded": "已放弃本次功课",
+  "sessionDiscard": "放弃本次功课",
+  "sessionDiscardTitle": "放弃本次功课？",
+  "sessionDiscardBody": "这次功课还没结束，放弃后当前累计的 {count} 遍会被丢弃，且不会写入明细。",
+  "@sessionDiscardBody": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+
+  "sheetMarkTimes": "逐次时间",
+  "sheetMarkCount": "共 {count} 遍",
+  "@sheetMarkCount": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "sheetLegacyMarks": "本次共 {total} 遍，其中 {marks} 遍有时间点，其余为此前版本所记",
+  "@sheetLegacyMarks": {
+    "placeholders": {
+      "total": { "type": "int" },
+      "marks": { "type": "int" }
+    }
+  },
+  "sheetMarkIndex": "第 {index} 遍",
+  "@sheetMarkIndex": {
+    "placeholders": { "index": { "type": "int" } }
+  },
+  "sheetOnlyTotalTitle": "这条记录只有总遍数",
+  "sheetOnlyTotalHint": "逐次时间点是从之后的版本开始记录的，\n此前的记录无法回溯补全。",
+  "sessionSubtitle": "{time} · 持续 {duration}",
+  "@sessionSubtitle": {
+    "placeholders": {
+      "time": { "type": "String" },
+      "duration": { "type": "String" }
+    }
+  },
+  "metricTotal": "总遍数",
+  "metricDuration": "持续",
+  "metricAverageGap": "平均间隔",
+
+  "settingsTitle": "功课设置",
+  "settingsDailyGoal": "每日目标（遍）",
+  "settingsBeadCount": "每串念珠颗数",
+  "settingsHaptics": "震动反馈",
+  "settingsHapticsHint": "每次计数时轻微震动",
+  "settingsSound": "点击提示音",
+  "settingsSoundHint": "每次计数时播放系统提示音",
+  "settingsSkin": "界面皮肤",
+  "skinSystem": "跟随系统",
+  "skinLight": "浅色",
+  "skinDark": "深色",
+  "settingsLanguage": "界面语言",
+  "languageSystem": "跟随系统",
+  "languageZh": "简体中文",
+  "languageZhHant": "繁體中文",
+  "languageEn": "English",
+
+  "settingsBackup": "备份与恢复",
+  "settingsExport": "导出明细记录",
+  "settingsExportHint": "导出为文件，可保存到手机或发送到微信、邮箱、网盘",
+  "settingsCopyBackup": "复制备份文本",
+  "settingsCopyBackupHint": "复制为文本，粘贴到备忘录或聊天窗口保存",
+  "settingsImport": "导入恢复",
+  "settingsImportHint": "粘贴之前导出的文本，恢复或合并明细",
+  "settingsClearAll": "清空全部记录",
+  "clearConfirmTitle": "清空全部记录？",
+  "clearConfirmBody": "所有持咒记录与统计都会被删除，且无法恢复。",
+  "clearConfirmAction": "确认清空",
+  "clearDone": "已清空全部持咒记录",
+  "exportEmpty": "还没有可导出的明细记录",
+  "exportShareSubject": "准提法计数器明细备份",
+  "exportShareText": "准提法计数器明细备份 · 共 {sessions} 条记录 · {total} 遍",
+  "@exportShareText": {
+    "placeholders": {
+      "sessions": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "exportFileName": "准提法计数器备份-{stamp}.json",
+  "@exportFileName": {
+    "placeholders": { "stamp": { "type": "String" } }
+  },
+  "exportFailed": "导出文件失败：{error}",
+  "@exportFailed": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "copyDoneTitle": "已复制导出文本",
+  "copyDoneBody": "共 {sessions} 条记录 · {total} 遍，备份文本已复制到剪贴板。\n\n可以粘贴到备忘录、聊天窗口或文件中保存；恢复时在「导入恢复」里把这段文本粘贴回来即可。",
+  "@copyDoneBody": {
+    "placeholders": {
+      "sessions": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "importRestored": "已用备份恢复 {count} 条明细记录",
+  "@importRestored": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "importNothingNew": "没有新增记录，备份里的 {count} 条都已存在",
+  "@importNothingNew": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "importAdded": "已导入 {count} 条明细记录",
+  "@importAdded": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "importAddedSkipped": "已导入 {added} 条明细记录，跳过 {skipped} 条已存在的",
+  "@importAddedSkipped": {
+    "placeholders": {
+      "added": { "type": "int" },
+      "skipped": { "type": "int" }
+    }
+  },
+  "importTitle": "导入恢复",
+  "importPasteHint": "把之前导出的备份文本粘贴到下面：",
+  "importMerge": "合并",
+  "importReplace": "覆盖",
+  "importAction": "导入",
+  "importBusy": "导入中…",
+  "importWaiting": "等待粘贴…",
+  "importPreviewEmpty": "备份里没有可导入的记录",
+  "importPreview": "将导入 {sessions} 条记录 · {total} 遍{range}",
+  "@importPreview": {
+    "placeholders": {
+      "sessions": { "type": "int" },
+      "total": { "type": "int" },
+      "range": { "type": "String" }
+    }
+  },
+  "importRangeSingle": "（{date}）",
+  "@importRangeSingle": {
+    "placeholders": { "date": { "type": "String" } }
+  },
+  "importRangeSpan": "（{from} - {to}）",
+  "@importRangeSpan": {
+    "placeholders": {
+      "from": { "type": "String" },
+      "to": { "type": "String" }
+    }
+  },
+  "importReplaceTitle": "覆盖现有记录？",
+  "importReplaceBody": "本地现有的 {local} 条明细记录会被删除，替换为备份里的 {backup} 条。此操作无法撤销。",
+  "@importReplaceBody": {
+    "placeholders": {
+      "local": { "type": "int" },
+      "backup": { "type": "int" }
+    }
+  },
+  "importReplaceConfirm": "确认覆盖",
+
+  "backupErrorEmpty": "备份内容为空，请先把导出的文本粘贴进来",
+  "backupErrorInvalidJson": "不是有效的备份文本（JSON 解析失败）",
+  "backupErrorWrongFormat": "备份格式不对，应为一段备份文本",
+  "backupErrorWrongApp": "这不是准提法计数器的备份",
+  "backupErrorNewerVersion": "备份来自更新的版本（v{version}），请先升级应用",
+  "@backupErrorNewerVersion": {
+    "placeholders": { "version": { "type": "String" } }
+  },
+  "backupErrorMissingSessions": "备份里缺少明细记录",
+  "backupErrorSessionFormat": "第 {index} 条明细记录格式不对",
+  "@backupErrorSessionFormat": {
+    "placeholders": { "index": { "type": "int" } }
+  },
+  "backupErrorSessionParse": "第 {index} 条明细记录解析失败",
+  "@backupErrorSessionParse": {
+    "placeholders": { "index": { "type": "int" } }
+  },
+
+  "spanSeconds": "{count} 秒",
+  "@spanSeconds": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "spanMinutes": "{count} 分",
+  "@spanMinutes": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "spanMinutesSeconds": "{minutes} 分 {seconds} 秒",
+  "@spanMinutesSeconds": {
+    "placeholders": {
+      "minutes": { "type": "int" },
+      "seconds": { "type": "int" }
+    }
+  },
+  "spanHours": "{count} 小时",
+  "@spanHours": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "spanHoursMinutes": "{hours} 小时 {minutes} 分",
+  "@spanHoursMinutes": {
+    "placeholders": {
+      "hours": { "type": "int" },
+      "minutes": { "type": "int" }
+    }
+  },
+  "durationUnderMinute": "不足 1 分钟",
+  "durationMinutes": "{count} 分钟",
+  "@durationMinutes": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "durationHours": "{count} 小时",
+  "@durationHours": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "durationHoursMinutes": "{hours} 小时 {minutes} 分",
+  "@durationHoursMinutes": {
+    "placeholders": {
+      "hours": { "type": "int" },
+      "minutes": { "type": "int" }
+    }
+  },
+  "relativeJustNow": "刚刚",
+  "relativeMinutesAgo": "{count} 分钟前",
+  "@relativeMinutesAgo": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "relativeHoursAgo": "{count} 小时前",
+  "@relativeHoursAgo": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "chartToday": "今日"
+}

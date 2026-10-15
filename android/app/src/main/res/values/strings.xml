@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 桌面上显示的应用名（默认语言：简体中文），其它语言见同级的 values-* 目录 -->
+<resources>
+    <string name="app_name">准提法计数器</string>
+</resources>

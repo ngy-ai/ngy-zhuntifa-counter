@@ -6,6 +6,7 @@ import 'package:speech_to_text/speech_recognition_result.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 
 import 'mantra_matcher.dart';
+import 'voice_failure.dart';
 
 /// 语音计数的对外契约，便于测试替换成替身。
 abstract class VoiceCounter implements Listenable {
@@ -15,8 +16,11 @@ abstract class VoiceCounter implements Listenable {
   /// 最近识别到的原文，用于界面回显。
   String get lastHeard;
 
-  /// 出错信息，null 表示一切正常。
-  String? get error;
+  /// 失败原因，null 表示一切正常。界面按当前语言翻译后展示。
+  VoiceFailure? get failure;
+
+  /// 失败细节：启动失败/中断时是异常信息，其它错误时是系统错误码。
+  String? get failureDetail;
 
   /// 判定圆满一遍时回调。
   set onRecitation(VoidCallback? callback);
@@ -50,7 +54,8 @@ class MantraVoiceCounter extends ChangeNotifier implements VoiceCounter {
   String? _localeId;
   VoiceStatus _status = VoiceStatus.idle;
   String _lastHeard = '';
-  String? _error;
+  VoiceFailure? _failure;
+  String? _failureDetail;
 
   @override
   VoidCallback? onRecitation;
@@ -65,12 +70,16 @@ class MantraVoiceCounter extends ChangeNotifier implements VoiceCounter {
   String get lastHeard => _lastHeard;
 
   @override
-  String? get error => _error;
+  VoiceFailure? get failure => _failure;
+
+  @override
+  String? get failureDetail => _failureDetail;
 
   @override
   Future<void> start() async {
     if (isActive) return;
-    _error = null;
+    _failure = null;
+    _failureDetail = null;
     _lastHeard = '';
     _status = VoiceStatus.starting;
     notifyListeners();
@@ -81,7 +90,7 @@ class MantraVoiceCounter extends ChangeNotifier implements VoiceCounter {
         onError: _handleError,
       );
       if (!available) {
-        _fail('无法使用语音识别，请检查麦克风权限与系统语音服务');
+        _fail(VoiceFailure.unavailable);
         return;
       }
       _localeId = await _resolveLocaleId();
@@ -90,7 +99,7 @@ class MantraVoiceCounter extends ChangeNotifier implements VoiceCounter {
       notifyListeners();
       await _listen();
     } catch (error) {
-      _fail('语音识别启动失败：$error');
+      _fail(VoiceFailure.startFailed, '$error');
     }
   }
 
@@ -100,7 +109,8 @@ class MantraVoiceCounter extends ChangeNotifier implements VoiceCounter {
     _restartTimer = null;
     _status = VoiceStatus.idle;
     _lastHeard = '';
-    _error = null;
+    _failure = null;
+    _failureDetail = null;
     _matcher.reset();
     notifyListeners();
     await _stopEngine();
@@ -130,7 +140,7 @@ class MantraVoiceCounter extends ChangeNotifier implements VoiceCounter {
         ),
       );
     } catch (error) {
-      _fail('语音识别中断：$error');
+      _fail(VoiceFailure.interrupted, '$error');
     }
   }
 
@@ -180,11 +190,12 @@ class MantraVoiceCounter extends ChangeNotifier implements VoiceCounter {
     _fail(
       switch (error.errorMsg) {
         'error_permission' ||
-        'error_permission_denied' => '没有麦克风或语音识别权限，请在系统设置里开启后重试',
-        'error_busy' => '语音识别被其他应用占用，请稍后重试',
-        'error_network' => '语音识别需要网络，请检查网络后重试',
-        _ => '语音识别出错（${error.errorMsg}）',
+        'error_permission_denied' => VoiceFailure.permission,
+        'error_busy' => VoiceFailure.busy,
+        'error_network' => VoiceFailure.network,
+        _ => VoiceFailure.unknown,
       },
+      error.errorMsg,
     );
   }
 
@@ -210,10 +221,11 @@ class MantraVoiceCounter extends ChangeNotifier implements VoiceCounter {
     return null;
   }
 
-  void _fail(String message) {
+  void _fail(VoiceFailure failure, [String? detail]) {
     _restartTimer?.cancel();
     _restartTimer = null;
-    _error = message;
+    _failure = failure;
+    _failureDetail = detail;
     _status = VoiceStatus.failed;
     notifyListeners();
     unawaited(_stopEngine());

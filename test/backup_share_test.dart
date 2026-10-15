@@ -5,6 +5,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:ngy_zhuntifa_counter/app.dart';
 import 'package:ngy_zhuntifa_counter/data/practice_backup.dart';
 import 'package:ngy_zhuntifa_counter/data/practice_store.dart';
+import 'package:ngy_zhuntifa_counter/l10n/app_language.dart';
+import 'package:ngy_zhuntifa_counter/models/practice_settings.dart';
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 import 'package:share_plus/share_plus.dart' show SharePlus;
 import 'package:share_plus_platform_interface/share_plus_platform_interface.dart';
@@ -52,6 +54,10 @@ void main() {
   testWidgets('导出明细记录会写出备份文件并唤起分享面板', (WidgetTester tester) async {
     final store = PracticeStore(storage: MemoryKeyValueStore());
     await store.load();
+    // 界面语言固定为简体中文：用例断言的是简体中文的文案
+    await store.updateSettings(
+      const PracticeSettings(language: AppLanguage.zh),
+    );
     store.tap(at: DateTime(2026, 10, 1, 9));
     store.tap(at: DateTime(2026, 10, 1, 9, 1));
     store.finishCurrent();

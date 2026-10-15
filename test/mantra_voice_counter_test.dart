@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ngy_zhuntifa_counter/voice/mantra_matcher.dart';
 import 'package:ngy_zhuntifa_counter/voice/mantra_voice_counter.dart';
+import 'package:ngy_zhuntifa_counter/voice/voice_failure.dart';
 import 'package:speech_to_text/speech_recognition_error.dart';
 import 'package:speech_to_text/speech_recognition_result.dart';
 import 'package:speech_to_text/speech_to_text.dart';
@@ -109,7 +110,7 @@ void main() {
 
       expect(counter.isActive, isTrue);
       expect(counter.status, VoiceStatus.listening);
-      expect(counter.error, isNull);
+      expect(counter.failure, isNull);
       expect(fake.initializeCalls, 1);
       expect(fake.listenCalls, 1);
       expect(fake.listening, isTrue);
@@ -142,7 +143,7 @@ void main() {
 
       expect(counter.isActive, isFalse);
       expect(counter.status, VoiceStatus.failed);
-      expect(counter.error, contains('麦克风'));
+      expect(counter.failure, VoiceFailure.unavailable);
       expect(fake.listenCalls, 0);
     });
 
@@ -152,7 +153,8 @@ void main() {
       await counter.start();
 
       expect(counter.status, VoiceStatus.failed);
-      expect(counter.error, contains('语音识别启动失败'));
+      expect(counter.failure, VoiceFailure.startFailed);
+      expect(counter.failureDetail, contains('boom'));
     });
 
     test('聆听抛错会给出提示', () async {
@@ -161,7 +163,8 @@ void main() {
       await counter.start();
 
       expect(counter.status, VoiceStatus.failed);
-      expect(counter.error, contains('语音识别中断'));
+      expect(counter.failure, VoiceFailure.interrupted);
+      expect(counter.failureDetail, contains('boom'));
     });
 
     test('重复 start 不会重复初始化', () async {
@@ -180,7 +183,7 @@ void main() {
       expect(counter.isActive, isFalse);
       expect(counter.status, VoiceStatus.idle);
       expect(counter.lastHeard, isEmpty);
-      expect(counter.error, isNull);
+      expect(counter.failure, isNull);
       expect(fake.stopCalls, 1);
       expect(fake.listening, isFalse);
     });
@@ -269,7 +272,7 @@ void main() {
 
       expect(counter.isActive, isFalse);
       expect(counter.status, VoiceStatus.failed);
-      expect(counter.error, contains('权限'));
+      expect(counter.failure, VoiceFailure.permission);
       expect(fake.stopCalls, 1);
     });
 
@@ -279,7 +282,7 @@ void main() {
       fake.errorListener?.call(SpeechRecognitionError('error_no_match', false));
 
       expect(counter.status, VoiceStatus.listening);
-      expect(counter.error, isNull);
+      expect(counter.failure, isNull);
     });
   });
 }
