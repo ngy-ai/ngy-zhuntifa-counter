@@ -202,10 +202,8 @@
   "settingsBackup": "备份与恢复",
   "settingsExport": "导出明细记录",
   "settingsExportHint": "导出为文件，可保存到手机或发送到微信、邮箱、网盘",
-  "settingsCopyBackup": "复制备份文本",
-  "settingsCopyBackupHint": "复制为文本，粘贴到备忘录或聊天窗口保存",
   "settingsImport": "导入恢复",
-  "settingsImportHint": "粘贴之前导出的文本，恢复或合并明细",
+  "settingsImportHint": "选择之前导出的备份文件，恢复或合并明细",
   "settingsClearAll": "清空全部记录",
   "clearConfirmTitle": "清空全部记录？",
   "clearConfirmBody": "所有持咒记录与统计都会被删除，且无法恢复。",
@@ -228,14 +226,6 @@
   "@exportFailed": {
     "placeholders": { "error": { "type": "String" } }
   },
-  "copyDoneTitle": "已复制导出文本",
-  "copyDoneBody": "共 {sessions} 条记录 · {total} 遍，备份文本已复制到剪贴板。\n\n可以粘贴到备忘录、聊天窗口或文件中保存；恢复时在「导入恢复」里把这段文本粘贴回来即可。",
-  "@copyDoneBody": {
-    "placeholders": {
-      "sessions": { "type": "int" },
-      "total": { "type": "int" }
-    }
-  },
   "importRestored": "已用备份恢复 {count} 条明细记录",
   "@importRestored": {
     "placeholders": { "count": { "type": "int" } }
@@ -256,12 +246,15 @@
     }
   },
   "importTitle": "导入恢复",
-  "importPasteHint": "把之前导出的备份文本粘贴到下面：",
+  "importReadFailed": "读取备份文件失败：{error}",
+  "@importReadFailed": {
+    "description": "选好备份文件后读取失败（文件被占用、不是文本文件等）",
+    "placeholders": { "error": { "type": "String" } }
+  },
   "importMerge": "合并",
   "importReplace": "覆盖",
   "importAction": "导入",
   "importBusy": "导入中…",
-  "importWaiting": "等待粘贴…",
   "importPreviewEmpty": "备份里没有可导入的记录",
   "importPreview": "将导入 {sessions} 条记录 · {total} 遍{range}",
   "@importPreview": {
@@ -292,9 +285,9 @@
   },
   "importReplaceConfirm": "确认覆盖",
 
-  "backupErrorEmpty": "备份内容为空，请先把导出的文本粘贴进来",
-  "backupErrorInvalidJson": "不是有效的备份文本（JSON 解析失败）",
-  "backupErrorWrongFormat": "备份格式不对，应为一段备份文本",
+  "backupErrorEmpty": "备份文件是空的",
+  "backupErrorInvalidJson": "不是有效的备份文件（JSON 解析失败）",
+  "backupErrorWrongFormat": "备份格式不对，应为备份文件里的内容",
   "backupErrorWrongApp": "这不是准提法计数器的备份",
   "backupErrorNewerVersion": "备份来自更新的版本（v{version}），请先升级应用",
   "@backupErrorNewerVersion": {

@@ -2,11 +2,11 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../data/backup_error.dart';
+import '../data/backup_file.dart';
 import '../data/practice_backup.dart';
 import '../data/practice_store.dart';
 import '../l10n/app_language.dart';
@@ -105,7 +105,8 @@ class _SettingsSheetState extends State<_SettingsSheet> {
     }
 
     final text = store.exportBackup();
-    final sessionCount = store.sessions.length + (store.currentCount > 0 ? 1 : 0);
+    final sessionCount =
+        store.sessions.length + (store.currentCount > 0 ? 1 : 0);
     final totalCount =
         store.sessions.fold<int>(0, (sum, session) => sum + session.count) +
         store.currentCount;
@@ -131,9 +132,9 @@ class _SettingsSheetState extends State<_SettingsSheet> {
       );
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-        SnackBar(content: Text(l10n.exportFailed('$error'))),
-      );
+      ScaffoldMessenger.maybeOf(
+        context,
+      )?.showSnackBar(SnackBar(content: Text(l10n.exportFailed('$error'))));
     }
   }
 
@@ -146,49 +147,38 @@ class _SettingsSheetState extends State<_SettingsSheet> {
     return l10n.exportFileName(stamp);
   }
 
-  /// 把备份复制到剪贴板，便于粘贴到备忘录或聊天窗口。
-  Future<void> _copyRecords() async {
+  /// 选择备份文件并导入：用户取消选择时什么也不做；文件读不了或不是备份时提示原因。
+  Future<void> _importRecords() async {
     final l10n = AppLocalizations.of(context);
-    final store = widget.store;
-    if (store.sessions.isEmpty && store.currentCount == 0) {
+
+    final String? text;
+    try {
+      text = await backupFileReader();
+    } catch (error) {
+      if (!mounted) return;
       ScaffoldMessenger.maybeOf(
         context,
-      )?.showSnackBar(SnackBar(content: Text(l10n.exportEmpty)));
+      )?.showSnackBar(SnackBar(content: Text(l10n.importReadFailed('$error'))));
+      return;
+    }
+    if (text == null || !mounted) return;
+
+    final PracticeBackup backup;
+    try {
+      backup = PracticeBackup.parse(text);
+    } on BackupParseException catch (error) {
+      ScaffoldMessenger.maybeOf(
+        context,
+      )?.showSnackBar(SnackBar(content: Text(backupErrorMessage(l10n, error))));
       return;
     }
 
-    final text = store.exportBackup();
-    await Clipboard.setData(ClipboardData(text: text));
-    if (!mounted) return;
-
-    final sessionCount = store.sessions.length + (store.currentCount > 0 ? 1 : 0);
-    final totalCount =
-        store.sessions.fold<int>(0, (sum, session) => sum + session.count) +
-        store.currentCount;
-
-    await showDialog<void>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(l10n.copyDoneTitle),
-        content: Text(l10n.copyDoneBody(sessionCount, totalCount)),
-        actions: <Widget>[
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: Text(l10n.confirmOk),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _importRecords() async {
     final result = await showDialog<BackupImportResult>(
       context: context,
-      builder: (_) => _ImportRecordsDialog(store: widget.store),
+      builder: (_) => _ImportRecordsDialog(store: widget.store, backup: backup),
     );
     if (result == null || !mounted) return;
 
-    final l10n = AppLocalizations.of(context);
     final String message;
     if (result.replaced) {
       message = l10n.importRestored(result.totalSessions);
@@ -199,7 +189,9 @@ class _SettingsSheetState extends State<_SettingsSheet> {
     } else {
       message = l10n.importAddedSkipped(result.added, result.skipped);
     }
-    ScaffoldMessenger.maybeOf(context)?.showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.maybeOf(
+      context,
+    )?.showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -225,8 +217,7 @@ class _SettingsSheetState extends State<_SettingsSheet> {
               options: _goalOptions,
               selected: _draft.dailyGoal,
               labelOf: (value) => '$value',
-              onSelected: (value) =>
-                  _apply(_draft.copyWith(dailyGoal: value)),
+              onSelected: (value) => _apply(_draft.copyWith(dailyGoal: value)),
             ),
             const SizedBox(height: 22),
             _SectionLabel(text: l10n.settingsBeadCount),
@@ -235,8 +226,7 @@ class _SettingsSheetState extends State<_SettingsSheet> {
               options: _beadOptions,
               selected: _draft.beadCount,
               labelOf: (value) => '$value',
-              onSelected: (value) =>
-                  _apply(_draft.copyWith(beadCount: value)),
+              onSelected: (value) => _apply(_draft.copyWith(beadCount: value)),
             ),
             const SizedBox(height: 14),
             SwitchListTile(
@@ -252,7 +242,8 @@ class _SettingsSheetState extends State<_SettingsSheet> {
               title: Text(l10n.settingsSound),
               subtitle: Text(l10n.settingsSoundHint),
               value: _draft.soundEnabled,
-              onChanged: (value) => _apply(_draft.copyWith(soundEnabled: value)),
+              onChanged: (value) =>
+                  _apply(_draft.copyWith(soundEnabled: value)),
             ),
             const SizedBox(height: 22),
             _SectionLabel(text: l10n.settingsSkin),
@@ -295,14 +286,7 @@ class _SettingsSheetState extends State<_SettingsSheet> {
             ),
             ListTile(
               contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.copy_all_rounded),
-              title: Text(l10n.settingsCopyBackup),
-              subtitle: Text(l10n.settingsCopyBackupHint),
-              onTap: _copyRecords,
-            ),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.content_paste_rounded),
+              leading: const Icon(Icons.file_open_rounded),
               title: Text(l10n.settingsImport),
               subtitle: Text(l10n.settingsImportHint),
               onTap: _importRecords,
@@ -373,59 +357,28 @@ class _OptionChips<T> extends StatelessWidget {
   }
 }
 
-/// 导入恢复对话框：粘贴备份文本，选择合并或覆盖。
+/// 导入确认对话框：展示备份文件的记录摘要，选择合并或覆盖。
 class _ImportRecordsDialog extends StatefulWidget {
-  const _ImportRecordsDialog({required this.store});
+  const _ImportRecordsDialog({required this.store, required this.backup});
 
   final PracticeStore store;
+
+  /// 已经解析好的备份内容（文件在打开对话框前就已读取、校验）。
+  final PracticeBackup backup;
 
   @override
   State<_ImportRecordsDialog> createState() => _ImportRecordsDialogState();
 }
 
 class _ImportRecordsDialogState extends State<_ImportRecordsDialog> {
-  final TextEditingController _controller = TextEditingController();
-
-  PracticeBackup? _backup;
-  BackupParseException? _error;
   bool _replace = false;
   bool _busy = false;
 
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  void _handleChanged(String text) {
-    final trimmed = text.trim();
-    if (trimmed.isEmpty) {
-      setState(() {
-        _backup = null;
-        _error = null;
-      });
-      return;
-    }
-    try {
-      final backup = PracticeBackup.parse(trimmed);
-      setState(() {
-        _backup = backup;
-        _error = null;
-      });
-    } on BackupParseException catch (error) {
-      setState(() {
-        _backup = null;
-        _error = error;
-      });
-    }
-  }
-
-  bool get _canSubmit =>
-      !_busy && _backup != null && _backup!.sessionCount > 0;
+  bool get _canSubmit => !_busy && widget.backup.sessionCount > 0;
 
   Future<void> _submit() async {
-    final backup = _backup;
-    if (!_canSubmit || backup == null) return;
+    final backup = widget.backup;
+    if (!_canSubmit) return;
 
     if (_replace) {
       final l10n = AppLocalizations.of(context);
@@ -434,9 +387,7 @@ class _ImportRecordsDialogState extends State<_ImportRecordsDialog> {
         context: context,
         builder: (dialogContext) => AlertDialog(
           title: Text(l10n.importReplaceTitle),
-          content: Text(
-            l10n.importReplaceBody(local, backup.sessionCount),
-          ),
+          content: Text(l10n.importReplaceBody(local, backup.sessionCount)),
           actions: <Widget>[
             TextButton(
               onPressed: () => Navigator.pop(dialogContext, false),
@@ -464,7 +415,6 @@ class _ImportRecordsDialogState extends State<_ImportRecordsDialog> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final scheme = Theme.of(context).colorScheme;
 
     return AlertDialog(
       scrollable: true,
@@ -475,24 +425,6 @@ class _ImportRecordsDialogState extends State<_ImportRecordsDialog> {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            Text(
-              l10n.importPasteHint,
-              style: TextStyle(fontSize: 13, color: scheme.onSurfaceVariant),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _controller,
-              onChanged: _handleChanged,
-              minLines: 4,
-              maxLines: 7,
-              keyboardType: TextInputType.multiline,
-              decoration: const InputDecoration(
-                hintText: '{"app":"ngy_zhuntifa_counter", ...}',
-                border: OutlineInputBorder(),
-                isDense: true,
-              ),
-            ),
-            const SizedBox(height: 12),
             _buildPreview(),
             const SizedBox(height: 12),
             SegmentedButton<bool>(
@@ -532,21 +464,7 @@ class _ImportRecordsDialogState extends State<_ImportRecordsDialog> {
   Widget _buildPreview() {
     final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
-    final error = _error;
-    if (error != null) {
-      return Text(
-        backupErrorMessage(l10n, error),
-        style: TextStyle(fontSize: 12.5, color: scheme.error),
-      );
-    }
-
-    final backup = _backup;
-    if (backup == null) {
-      return Text(
-        l10n.importWaiting,
-        style: TextStyle(fontSize: 12.5, color: scheme.onSurfaceVariant),
-      );
-    }
+    final backup = widget.backup;
 
     if (backup.sessionCount == 0) {
       return Text(

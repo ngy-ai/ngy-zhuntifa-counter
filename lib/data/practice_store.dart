@@ -148,7 +148,7 @@ class PracticeStore extends ChangeNotifier {
     await flush();
   }
 
-  /// 导出全部明细记录（含进行中的一次）为可粘贴的备份文本。
+  /// 导出全部明细记录（含进行中的一次）为备份文本（即备份文件的内容）。
   String exportBackup({DateTime? at}) => PracticeBackup.encode(
     sessions: _sessions,
     current: _current,
@@ -182,7 +182,9 @@ class PracticeStore extends ChangeNotifier {
     _sessions.sort((a, b) => a.startAt.compareTo(b.startAt));
 
     final restoredCurrent = backup.current;
-    if (_current == null && restoredCurrent != null && restoredCurrent.isEffective) {
+    if (_current == null &&
+        restoredCurrent != null &&
+        restoredCurrent.isEffective) {
       _current = restoredCurrent;
     }
 

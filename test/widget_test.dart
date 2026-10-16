@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ngy_zhuntifa_counter/app.dart';
-import 'package:ngy_zhuntifa_counter/data/practice_backup.dart';
+import 'package:ngy_zhuntifa_counter/data/backup_file.dart';
 import 'package:ngy_zhuntifa_counter/data/practice_store.dart';
 import 'package:ngy_zhuntifa_counter/l10n/app_language.dart';
 import 'package:ngy_zhuntifa_counter/models/practice_settings.dart';
@@ -27,6 +26,14 @@ Future<void> _teardown(WidgetTester tester, PracticeStore store) async {
   await tester.pumpWidget(const SizedBox.shrink());
   await tester.pump(const Duration(seconds: 1));
   store.dispose();
+}
+
+/// 打开设置面板并滚动到「导入恢复」一项。
+Future<void> _openImportEntry(WidgetTester tester) async {
+  await tester.tap(find.byIcon(Icons.tune_rounded));
+  await tester.pumpAndSettle();
+  await tester.ensureVisible(find.text('导入恢复'));
+  await tester.pumpAndSettle();
 }
 
 void main() {
@@ -100,9 +107,7 @@ void main() {
       Brightness.dark,
     );
     expect(
-      Theme.of(
-        tester.element(find.byType(NavigationBar)),
-      ).extension<AppSkin>(),
+      Theme.of(tester.element(find.byType(NavigationBar))).extension<AppSkin>(),
       AppSkin.dark,
     );
 
@@ -288,54 +293,8 @@ void main() {
     await _teardown(tester, store);
   });
 
-  testWidgets('设置面板可以把备份文本复制到剪贴板', (WidgetTester tester) async {
-    final clipboard = <MethodCall>[];
-    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
-      SystemChannels.platform,
-      (MethodCall call) async {
-        clipboard.add(call);
-        return null;
-      },
-    );
-    addTearDown(
-      () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
-        SystemChannels.platform,
-        null,
-      ),
-    );
-
-    final store = await _storeWith();
-    store.tap(at: DateTime(2026, 10, 1, 9));
-    store.tap(at: DateTime(2026, 10, 1, 9, 1));
-    store.finishCurrent();
-
-    await tester.pumpWidget(ZhuntiCounterApp(store: store));
-    await tester.tap(find.byIcon(Icons.tune_rounded));
-    await tester.pumpAndSettle();
-
-    await tester.ensureVisible(find.text('复制备份文本'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('复制备份文本'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('已复制导出文本'), findsOneWidget);
-    expect(find.textContaining('共 1 条记录 · 2 遍'), findsOneWidget);
-
-    final setData = clipboard.lastWhere(
-      (MethodCall call) => call.method == 'Clipboard.setData',
-    );
-    final text =
-        (setData.arguments as Map<Object?, Object?>)['text']! as String;
-    expect(PracticeBackup.parse(text).sessions.single.count, 2);
-
-    await tester.tap(find.text('好的'));
-    await tester.pumpAndSettle();
-
-    await _teardown(tester, store);
-  });
-
-  testWidgets('设置面板可以粘贴备份恢复记录', (WidgetTester tester) async {
-    // 从另一个仓库导出一份带 2 遍记录的备份
+  testWidgets('设置面板可以从文件导入备份恢复记录', (WidgetTester tester) async {
+    // 从另一个仓库导出一份带 2 遍记录的备份，模拟用户选中的文件内容
     final source = PracticeStore(storage: MemoryKeyValueStore());
     await source.load();
     source.tap(at: DateTime(2026, 10, 1, 9));
@@ -344,18 +303,16 @@ void main() {
     final text = source.exportBackup(at: DateTime(2026, 10, 13));
     source.dispose();
 
+    backupFileReader = () async => text;
+    addTearDown(() => backupFileReader = pickBackupFile);
+
     final store = await _storeWith();
     await tester.pumpWidget(ZhuntiCounterApp(store: store));
-    await tester.tap(find.byIcon(Icons.tune_rounded));
-    await tester.pumpAndSettle();
+    await _openImportEntry(tester);
 
-    await tester.ensureVisible(find.text('导入恢复'));
-    await tester.pumpAndSettle();
     await tester.tap(find.text('导入恢复'));
     await tester.pumpAndSettle();
 
-    await tester.enterText(find.byType(TextField), text);
-    await tester.pumpAndSettle();
     expect(find.textContaining('将导入 1 条记录 · 2 遍'), findsOneWidget);
 
     await tester.tap(find.widgetWithText(FilledButton, '导入'));
@@ -364,6 +321,42 @@ void main() {
     expect(store.sessions.length, 1);
     expect(store.stats(DateTime(2026, 10, 13)).totalCount, 2);
     expect(find.textContaining('已导入 1 条明细记录'), findsOneWidget);
+
+    await _teardown(tester, store);
+  });
+
+  testWidgets('导入时取消选择文件不会导入任何记录', (WidgetTester tester) async {
+    // 用户在系统选择器里点了取消
+    backupFileReader = () async => null;
+    addTearDown(() => backupFileReader = pickBackupFile);
+
+    final store = await _storeWith();
+    await tester.pumpWidget(ZhuntiCounterApp(store: store));
+    await _openImportEntry(tester);
+
+    await tester.tap(find.text('导入恢复'));
+    await tester.pumpAndSettle();
+
+    // 不弹确认对话框，也不提示错误
+    expect(find.widgetWithText(FilledButton, '导入'), findsNothing);
+    expect(store.sessions, isEmpty);
+
+    await _teardown(tester, store);
+  });
+
+  testWidgets('选了不是备份的文件会提示错误', (WidgetTester tester) async {
+    backupFileReader = () async => '这不是备份';
+    addTearDown(() => backupFileReader = pickBackupFile);
+
+    final store = await _storeWith();
+    await tester.pumpWidget(ZhuntiCounterApp(store: store));
+    await _openImportEntry(tester);
+
+    await tester.tap(find.text('导入恢复'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('不是有效的备份文件（JSON 解析失败）'), findsOneWidget);
+    expect(store.sessions, isEmpty);
 
     await _teardown(tester, store);
   });

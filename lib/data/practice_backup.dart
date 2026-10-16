@@ -3,20 +3,20 @@ import 'dart:convert';
 import '../models/practice_session.dart';
 import 'backup_error.dart';
 
-/// 明细记录的备份：把全部功课记录编码成一段可粘贴的 JSON 文本。
+/// 明细记录的备份：把全部功课记录编码成一段 JSON 文本，导出时写入「.json」文件。
 ///
 /// 只包含持咒记录（含进行中的一次），不含界面设置，
 /// 导入时不会动到当前的偏好设置。
 class PracticeBackup {
   const PracticeBackup({required this.sessions, this.current, this.exportedAt});
 
-  /// 备份来源标记，用于识别误粘贴的其它 JSON 文本。
+  /// 备份来源标记，用于识别误选成其它 JSON 文件的备份。
   static const String appTag = 'ngy_zhuntifa_counter';
 
   /// 当前支持的备份版本。
   static const int version = 1;
 
-  /// 把记录编码成备份文本。
+  /// 把记录编码成备份文本（即备份文件的内容）。
   static String encode({
     required List<PracticeSession> sessions,
     PracticeSession? current,
@@ -87,10 +87,7 @@ class PracticeBackup {
       try {
         session = PracticeSession.fromJson(item);
       } catch (_) {
-        throw BackupParseException(
-          BackupError.sessionParse,
-          detail: index + 1,
-        );
+        throw BackupParseException(BackupError.sessionParse, detail: index + 1);
       }
       if (session.isEffective) sessions.add(session);
     }
