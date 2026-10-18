@@ -1,96 +1,63 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:ngy_zhuntifa_counter/voice/local_speech_recognizer.dart';
 import 'package:ngy_zhuntifa_counter/voice/mantra_matcher.dart';
 import 'package:ngy_zhuntifa_counter/voice/mantra_voice_counter.dart';
 import 'package:ngy_zhuntifa_counter/voice/voice_failure.dart';
-import 'package:speech_to_text/speech_recognition_error.dart';
-import 'package:speech_to_text/speech_recognition_result.dart';
-import 'package:speech_to_text/speech_to_text.dart';
 
-/// 可脚本化的语音识别替身：记录调用、暴露回调，由测试手动驱动。
-class FakeSpeechToText extends SpeechToText {
-  FakeSpeechToText() : super.withMethodChannel();
+/// 可脚本化的本地识别器替身：记录调用，由测试手动驱动识别文本。
+class FakeRecognizer implements LocalSpeechRecognizer {
+  /// 启动时抛出的异常，null 表示正常启动。
+  Object? startError;
 
-  bool available = true;
-  Object? initializeError;
-  Object? listenError;
-  List<LocaleName> localeList = const [];
-  bool listening = false;
+  /// 模拟加载模型需要的时长，默认立即可用。
+  Duration loadDelay = Duration.zero;
 
-  int initializeCalls = 0;
-  int listenCalls = 0;
+  int startCalls = 0;
   int stopCalls = 0;
+  int disposeCalls = 0;
+  bool started = false;
 
-  SpeechResultListener? resultListener;
-  SpeechListenOptions? lastOptions;
-
-  @override
-  Future<bool> initialize({
-    SpeechErrorListener? onError,
-    SpeechStatusListener? onStatus,
-    debugLogging = false,
-    Duration finalTimeout = SpeechToText.defaultFinalTimeout,
-    List<SpeechConfigOption>? options,
-  }) async {
-    initializeCalls++;
-    if (initializeError != null) throw initializeError!;
-    errorListener = onError;
-    statusListener = onStatus;
-    return available;
-  }
+  void Function(String text, bool isFinal)? _onResult;
 
   @override
-  Future<List<LocaleName>> locales() async => localeList;
-
-  @override
-  Future<void> listen({
-    SpeechResultListener? onResult,
-    Duration? listenFor,
-    Duration? pauseFor,
-    String? localeId,
-    SpeechSoundLevelChange? onSoundLevelChange,
-    cancelOnError = false,
-    partialResults = true,
-    onDevice = false,
-    ListenMode listenMode = ListenMode.confirmation,
-    sampleRate = 0,
-    SpeechListenOptions? listenOptions,
-  }) async {
-    listenCalls++;
-    if (listenError != null) throw listenError!;
-    resultListener = onResult;
-    lastOptions = listenOptions;
-    listening = true;
+  Future<void> start({required void Function(String, bool) onResult}) async {
+    startCalls++;
+    if (loadDelay > Duration.zero) {
+      await Future<void>.delayed(loadDelay);
+    }
+    final error = startError;
+    if (error != null) throw error;
+    _onResult = onResult;
+    started = true;
   }
 
   @override
   Future<void> stop() async {
     stopCalls++;
-    listening = false;
+    started = false;
+    _onResult = null;
   }
 
   @override
-  bool get isListening => listening;
+  void dispose() {
+    disposeCalls++;
+    started = false;
+    _onResult = null;
+  }
 
-  void emit(SpeechRecognitionResult result) => resultListener?.call(result);
-}
-
-/// 构造一条识别结果，默认是中间结果。
-SpeechRecognitionResult recognition(String words, {bool isFinal = false}) {
-  final type = isFinal ? ResultType.finalResult : ResultType.partial;
-  return SpeechRecognitionResult(
-    [SpeechRecognitionWords(words, null, 0.9)],
-    type.value,
-  );
+  /// 模拟一段识别文本，[isFinal] 表示这段念诵结束（端点）。
+  void emit(String text, {bool isFinal = false}) =>
+      _onResult?.call(text, isFinal);
 }
 
 void main() {
-  late FakeSpeechToText fake;
+  late FakeRecognizer fake;
   late MantraVoiceCounter counter;
   late int recitations;
 
   setUp(() {
-    fake = FakeSpeechToText();
-    counter = MantraVoiceCounter(speech: fake);
+    fake = FakeRecognizer();
+    counter = MantraVoiceCounter(recognizer: fake);
     recitations = 0;
     counter.onRecitation = () => recitations++;
   });
@@ -100,55 +67,47 @@ void main() {
   });
 
   group('启动与停止', () {
-    test('启动后优先使用简体中文并开始聆听', () async {
-      fake.localeList = [
-        LocaleName('en-US', 'English'),
-        LocaleName('zh-CN', '中文（中国）'),
-      ];
-
+    test('启动后进入聆听状态', () async {
       await counter.start();
 
       expect(counter.isActive, isTrue);
       expect(counter.status, VoiceStatus.listening);
       expect(counter.failure, isNull);
-      expect(fake.initializeCalls, 1);
-      expect(fake.listenCalls, 1);
-      expect(fake.listening, isTrue);
-      expect(fake.lastOptions?.localeId, 'zh-CN');
+      expect(fake.startCalls, 1);
+      expect(fake.started, isTrue);
     });
 
-    test('简体中文优先级高于其它中文变体', () async {
-      fake.localeList = [
-        LocaleName('zh-TW', '中文（台灣）'),
-        LocaleName('cmn-Hans-CN', '中文（简体）'),
-      ];
+    test('加载模型期间是 loading 状态，加载完才聆听', () async {
+      fake.loadDelay = const Duration(milliseconds: 60);
 
-      await counter.start();
+      final starting = counter.start();
+      await Future<void>.delayed(Duration.zero);
 
-      expect(fake.lastOptions?.localeId, 'cmn-Hans-CN');
+      expect(counter.loading, isTrue);
+      expect(counter.isActive, isTrue);
+      expect(counter.status, VoiceStatus.starting);
+
+      await starting;
+
+      expect(counter.loading, isFalse);
+      expect(counter.status, VoiceStatus.listening);
     });
 
-    test('没有中文识别时交给系统默认语言', () async {
-      fake.localeList = [LocaleName('en-US', 'English')];
-
-      await counter.start();
-
-      expect(fake.lastOptions?.localeId, isNull);
-    });
-
-    test('语音识别不可用时给出提示', () async {
-      fake.available = false;
+    test('没有麦克风权限时提示权限问题', () async {
+      fake.startError = const SpeechRecognizerException(
+        'denied',
+        permission: true,
+      );
 
       await counter.start();
 
       expect(counter.isActive, isFalse);
       expect(counter.status, VoiceStatus.failed);
-      expect(counter.failure, VoiceFailure.unavailable);
-      expect(fake.listenCalls, 0);
+      expect(counter.failure, VoiceFailure.permission);
     });
 
     test('启动过程抛错也能给出提示', () async {
-      fake.initializeError = StateError('boom');
+      fake.startError = StateError('boom');
 
       await counter.start();
 
@@ -157,22 +116,11 @@ void main() {
       expect(counter.failureDetail, contains('boom'));
     });
 
-    test('聆听抛错会给出提示', () async {
-      fake.listenError = StateError('boom');
-
-      await counter.start();
-
-      expect(counter.status, VoiceStatus.failed);
-      expect(counter.failure, VoiceFailure.interrupted);
-      expect(counter.failureDetail, contains('boom'));
-    });
-
-    test('重复 start 不会重复初始化', () async {
+    test('重复 start 不会重复启动', () async {
       await counter.start();
       await counter.start();
 
-      expect(fake.initializeCalls, 1);
-      expect(fake.listenCalls, 1);
+      expect(fake.startCalls, 1);
     });
 
     test('stop 会停止引擎并复位状态', () async {
@@ -185,19 +133,33 @@ void main() {
       expect(counter.lastHeard, isEmpty);
       expect(counter.failure, isNull);
       expect(fake.stopCalls, 1);
-      expect(fake.listening, isFalse);
+      expect(fake.started, isFalse);
+    });
+
+    test('加载期间 stop 不会被拉回聆听状态', () async {
+      fake.loadDelay = const Duration(milliseconds: 80);
+
+      final starting = counter.start();
+      await Future<void>.delayed(const Duration(milliseconds: 5));
+      await counter.stop();
+
+      await starting;
+
+      expect(counter.status, VoiceStatus.idle);
+      expect(counter.isActive, isFalse);
+      expect(counter.loading, isFalse);
     });
   });
 
   group('识别结果处理', () {
-    test('中间结果只回显，最终结果才计数', () async {
+    test('中间结果只回显，段落结束时才计数', () async {
       await counter.start();
 
-      fake.emit(recognition('南无飒哆喃三藐三菩陀'));
+      fake.emit('南无飒哆喃三藐三菩陀');
       expect(recitations, 0);
       expect(counter.lastHeard, '南无飒哆喃三藐三菩陀');
 
-      fake.emit(recognition(mantraText, isFinal: true));
+      fake.emit(mantraText, isFinal: true);
       expect(recitations, 1);
       expect(counter.lastHeard, mantraText);
     });
@@ -208,110 +170,48 @@ void main() {
       var notifications = 0;
       counter.addListener(() => notifications++);
 
-      fake.emit(recognition('南无飒哆喃'));
+      fake.emit('南无飒哆喃');
       expect(notifications, 1);
 
-      fake.emit(recognition('南无飒哆喃'));
+      fake.emit('南无飒哆喃');
       expect(notifications, 1);
     });
 
-    test('一次最终结果听到两遍会计数两次', () async {
+    test('一段里听到两遍会计数两次', () async {
       await counter.start();
 
-      fake.emit(recognition(mantraText + mantraText, isFinal: true));
+      fake.emit(mantraText + mantraText, isFinal: true);
 
       expect(recitations, 2);
     });
 
-    test('分两次听到的最终结果拼成一遍', () async {
+    test('分两段听到的最终结果拼成一遍', () async {
       await counter.start();
 
-      fake.emit(recognition('南无飒哆喃三藐三菩陀俱胝喃', isFinal: true));
+      fake.emit('南无飒哆喃三藐三菩陀俱胝喃', isFinal: true);
       expect(recitations, 0);
 
-      fake.emit(recognition('怛侄他唵折戾主戾准提娑婆诃', isFinal: true));
+      fake.emit('大吒陀嗡折戾主戾准提娑哈', isFinal: true);
       expect(recitations, 1);
     });
 
     test('空白的最终结果被忽略', () async {
       await counter.start();
 
-      fake.emit(recognition('   ', isFinal: true));
+      fake.emit('   ', isFinal: true);
 
       expect(recitations, 0);
       expect(counter.lastHeard, isEmpty);
     });
-  });
 
-  group('静音续听与错误处理', () {
-    test('识别器静音结束后自动续听', () async {
+    test('stop 之后不再处理识别结果', () async {
       await counter.start();
-      expect(fake.listenCalls, 1);
-
-      fake.statusListener?.call('done');
-      await Future<void>.delayed(const Duration(milliseconds: 600));
-
-      expect(fake.listenCalls, 2);
-      expect(counter.isActive, isTrue);
-    });
-
-    test('stop 之后不会再自动续听', () async {
-      await counter.start();
-
-      fake.statusListener?.call('done');
       await counter.stop();
 
-      await Future<void>.delayed(const Duration(milliseconds: 600));
-      expect(fake.listenCalls, 1);
-    });
+      fake.emit(mantraText, isFinal: true);
 
-    test('永久错误会停止聆听并给出提示', () async {
-      await counter.start();
-
-      fake.errorListener?.call(SpeechRecognitionError('error_permission', true));
-
-      expect(counter.isActive, isFalse);
-      expect(counter.status, VoiceStatus.failed);
-      expect(counter.failure, VoiceFailure.permission);
-      expect(fake.stopCalls, 1);
-    });
-
-    test('暂时性错误不影响继续聆听', () async {
-      await counter.start();
-
-      fake.errorListener?.call(SpeechRecognitionError('error_no_match', false));
-
-      expect(counter.status, VoiceStatus.listening);
-      expect(counter.failure, isNull);
-    });
-
-    test('没听清也会继续聆听：Android 把所有错误都标成 permanent', () async {
-      await counter.start();
-      expect(fake.listenCalls, 1);
-
-      fake.errorListener?.call(SpeechRecognitionError('error_no_match', true));
-      await Future<void>.delayed(const Duration(milliseconds: 600));
-
-      expect(counter.status, VoiceStatus.listening);
-      expect(counter.failure, isNull);
-      expect(counter.retryErrorCode, isNull);
-      expect(fake.listenCalls, 2);
-    });
-
-    test('网络类错误继续重试，并记录错误码供界面提示', () async {
-      await counter.start();
-
-      fake.errorListener?.call(SpeechRecognitionError('error_network', true));
-      await Future<void>.delayed(const Duration(milliseconds: 600));
-
-      expect(counter.status, VoiceStatus.listening);
-      expect(counter.failure, isNull);
-      expect(counter.retryErrorCode, 'error_network');
-      expect(fake.listenCalls, 2);
-
-      fake.emit(recognition('南无飒哆喃', isFinal: true));
-
-      expect(counter.retryErrorCode, isNull);
+      expect(recitations, 0);
+      expect(counter.lastHeard, isEmpty);
     });
   });
 }

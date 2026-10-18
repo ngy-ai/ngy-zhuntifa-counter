@@ -86,13 +86,15 @@
   "voiceTitle": "语音计数",
   "voiceUnavailableTitle": "语音计数不可用",
   "voiceListeningTitle": "正在聆听",
+  "voiceLoadingTitle": "正在准备语音计数",
+  "voiceLoadingHint": "首次开启需要加载识别模型，大约一两秒",
   "voiceIdleHint": "点按钮计数，开启后可语音自动记数",
   "voiceListeningHint": "念完一遍准提咒会自动记数，念诵时留意上方的遍数变化",
   "voiceHeard": "听到：{text}",
   "@voiceHeard": {
     "placeholders": { "text": { "type": "String" } }
   },
-  "voiceErrorUnavailable": "无法使用语音识别，请检查麦克风权限与系统语音服务",
+  "voiceErrorUnavailable": "语音识别无法启动，请重启应用后再试",
   "voiceErrorStartFailed": "语音识别启动失败：{detail}",
   "@voiceErrorStartFailed": {
     "placeholders": { "detail": { "type": "String" } }
@@ -101,16 +103,10 @@
   "@voiceErrorInterrupted": {
     "placeholders": { "detail": { "type": "String" } }
   },
-  "voiceErrorPermission": "没有麦克风或语音识别权限，请在系统设置里开启后重试",
-  "voiceErrorBusy": "语音识别被其他应用占用，请稍后重试",
-  "voiceErrorNetwork": "语音识别需要网络，请检查网络后重试",
+  "voiceErrorPermission": "没有麦克风权限，请在系统设置里开启后重试",
+  "voiceErrorBusy": "麦克风被其他应用占用，请稍后重试",
   "voiceErrorUnknown": "语音识别出错（{code}）",
   "@voiceErrorUnknown": {
-    "placeholders": { "code": { "type": "String" } }
-  },
-  "voiceRetrying": "语音识别出错（{code}），正在重试",
-  "@voiceRetrying": {
-    "description": "可恢复的识别问题：界面提示正在自动重试，不需要用户操作",
     "placeholders": { "code": { "type": "String" } }
   },
   "voiceNoSoundHint": "已经开启，但一直没听到声音：请把手机拿近一些，或在安静处念诵",

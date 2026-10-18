@@ -63,6 +63,13 @@ android {
             } else {
                 signingConfigs.getByName("debug")
             }
+
+            // 语音识别模型与原生库体积很大（见 docs/adr/0001），
+            // 发行包只打 arm64-v8a（2018 年以后的机型都是它）；
+            // debug 不做限制，x86_64 模拟器才能跑
+            ndk {
+                abiFilters += listOf("arm64-v8a")
+            }
         }
     }
 }

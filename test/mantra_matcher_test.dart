@@ -34,6 +34,9 @@ void main() {
       expect(MantraMatcher.normalizePinyin('suohe'), 'suopohe');
       expect(MantraMatcher.normalizePinyin('suowahe'), 'suopohe');
       expect(MantraMatcher.normalizePinyin('sapohe'), 'suopohe');
+      // 课诵念 suo ha；苏婆诃（u 音被吞掉）
+      expect(MantraMatcher.normalizePinyin('zhuntisuoha'), 'zhuntisuopohe');
+      expect(MantraMatcher.normalizePinyin('zhuntisupohe'), 'zhuntisuopohe');
       // 文读本身不受影响
       expect(MantraMatcher.normalizePinyin(mantraPinyin), mantraPinyin);
       // 无关内容原样返回
@@ -146,6 +149,21 @@ void main() {
         expect(matcher.accept(text), 1, reason: name);
         expect(matcher.pending, isEmpty, reason: name);
       });
+    });
+
+    test('快念录音的识别文本也能判成一遍', () {
+      // 真机快念（5–8 秒一遍）的四段识别结果：句末都被听糊了，
+      // 「准提」变成了「专题 / 转体 / 整体」，仍应各计一遍。
+      const heard = <String>[
+        '那么三朵纳生命三普托举止纳达托我们这里住的专题所嗽我们不',
+        '那么杀多难三百三不多就指南大致图文真的主力整体说话我们不',
+        '那么三朵男生没有这么多就只能带出这里助力转体送下文',
+        '那么三朵纳三名三普托举止哪大展图文这里助力专题所含我们不',
+      ];
+
+      for (final text in heard) {
+        expect(MantraMatcher().accept(text), 1, reason: text);
+      }
     });
 
     test('课诵念法连念两遍计数两次', () {

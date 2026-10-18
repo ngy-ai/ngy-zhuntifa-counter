@@ -169,8 +169,8 @@ class _PracticePageState extends State<PracticePage>
             ),
             _VoiceBar(
               listening: _voice.isActive,
+              loading: _voice.loading,
               lastHeard: _voice.lastHeard,
-              retryErrorCode: _voice.retryErrorCode,
               heardNothing: _voice.heardNothing,
               error: failure == null
                   ? null
@@ -209,8 +209,8 @@ class _PracticePageState extends State<PracticePage>
 class _VoiceBar extends StatelessWidget {
   const _VoiceBar({
     required this.listening,
+    required this.loading,
     required this.lastHeard,
-    required this.retryErrorCode,
     required this.heardNothing,
     required this.error,
     required this.busy,
@@ -220,8 +220,8 @@ class _VoiceBar extends StatelessWidget {
   final bool listening;
   final String lastHeard;
 
-  /// 可恢复的识别问题（如 error_network），提示用户正在自动重试。
-  final String? retryErrorCode;
+  /// 正在加载识别模型（首次开启时的一两秒）。
+  final bool loading;
 
   /// 开启后一直没听到声音，提示用户检查麦克风与念诵距离。
   final bool heardNothing;
@@ -241,12 +241,12 @@ class _VoiceBar extends StatelessWidget {
     if (message != null) {
       title = l10n.voiceUnavailableTitle;
       subtitle = message;
+    } else if (loading) {
+      title = l10n.voiceLoadingTitle;
+      subtitle = l10n.voiceLoadingHint;
     } else if (listening) {
-      final retryCode = retryErrorCode;
       title = l10n.voiceListeningTitle;
-      if (retryCode != null) {
-        subtitle = l10n.voiceRetrying(retryCode);
-      } else if (heardNothing) {
+      if (heardNothing) {
         subtitle = l10n.voiceNoSoundHint;
       } else {
         subtitle = lastHeard.isEmpty
@@ -274,11 +274,15 @@ class _VoiceBar extends StatelessWidget {
           Icon(
             message != null
                 ? Icons.mic_off_rounded
-                : (listening ? Icons.mic_rounded : Icons.mic_none_rounded),
+                : (loading
+                      ? Icons.hourglass_top_rounded
+                      : (listening
+                            ? Icons.mic_rounded
+                            : Icons.mic_none_rounded)),
             size: 20,
             color: message != null
                 ? scheme.error
-                : (listening ? skin.primary : skin.outline),
+                : (listening && !loading ? skin.primary : skin.outline),
           ),
           const SizedBox(width: 10),
           Expanded(

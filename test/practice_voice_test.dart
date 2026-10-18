@@ -19,16 +19,19 @@ class _FakeVoiceCounter extends ChangeNotifier implements VoiceCounter {
   final VoiceFailure? startFailure;
 
   bool _active = false;
+  bool _loading = false;
   String _lastHeard = '';
   bool _heardNothing = false;
   VoiceFailure? _reported;
-  String? _retryErrorCode;
 
   @override
   VoidCallback? onRecitation;
 
   @override
   bool get isActive => _active;
+
+  @override
+  bool get loading => _loading;
 
   @override
   String get lastHeard => _lastHeard;
@@ -43,12 +46,10 @@ class _FakeVoiceCounter extends ChangeNotifier implements VoiceCounter {
   String? get failureDetail => _reported == null ? null : '测试细节';
 
   @override
-  String? get retryErrorCode => _retryErrorCode;
-
-  @override
   Future<void> start() async {
     _reported = startFailure;
     _active = startFailure == null;
+    _loading = false;
     notifyListeners();
   }
 
@@ -56,23 +57,30 @@ class _FakeVoiceCounter extends ChangeNotifier implements VoiceCounter {
   Future<void> stop() async {
     _reported = null;
     _active = false;
+    _loading = false;
     notifyListeners();
   }
 
   /// 模拟识别到一遍圆满的准提咒。
   void emitRecitation() => onRecitation?.call();
 
-  /// 模拟界面回显的识别原文。
-  void heard(String text) {
-    _lastHeard = text;
-    _retryErrorCode = null;
-    _heardNothing = false;
+  /// 模拟首次开启时正在加载识别模型。
+  void loadingModel() {
+    _loading = true;
+    _active = true;
     notifyListeners();
   }
 
-  /// 模拟一次可恢复的识别问题（如网络不通），此时仍在聆听。
-  void retrying(String code) {
-    _retryErrorCode = code;
+  /// 模拟识别模型加载完成，开始聆听。
+  void loaded() {
+    _loading = false;
+    notifyListeners();
+  }
+
+  /// 模拟界面回显的识别原文。
+  void heard(String text) {
+    _lastHeard = text;
+    _heardNothing = false;
     notifyListeners();
   }
 
@@ -155,7 +163,7 @@ void main() {
     await _teardown(tester, store);
   });
 
-  testWidgets('识别出错时界面提示正在重试，开关保持开启', (WidgetTester tester) async {
+  testWidgets('首次开启时先提示正在准备语音计数', (WidgetTester tester) async {
     final store = await _store();
     final voice = _FakeVoiceCounter();
 
@@ -163,15 +171,18 @@ void main() {
     await tester.tap(find.byType(Switch));
     await tester.pumpAndSettle();
 
-    voice.retrying('error_network');
+    voice.loadingModel();
     await tester.pump();
 
     expect(voice.isActive, isTrue);
-    expect(find.text('语音识别出错（error_network），正在重试'), findsOneWidget);
+    expect(find.text('正在准备语音计数'), findsOneWidget);
+    expect(find.text('首次开启需要加载识别模型，大约一两秒'), findsOneWidget);
 
+    voice.loaded();
     voice.heard('南无飒哆喃');
     await tester.pump();
 
+    expect(find.text('正在准备语音计数'), findsNothing);
     expect(find.text('听到：南无飒哆喃'), findsOneWidget);
 
     await _teardown(tester, store);
@@ -214,7 +225,7 @@ void main() {
 
     expect(voice.isActive, isFalse);
     expect(find.text('语音计数不可用'), findsOneWidget);
-    expect(find.text('无法使用语音识别，请检查麦克风权限与系统语音服务'), findsWidgets);
+    expect(find.text('语音识别无法启动，请重启应用后再试'), findsWidgets);
 
     await _teardown(tester, store);
   });

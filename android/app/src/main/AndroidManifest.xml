@@ -1,9 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- 语音计数需要录音权限 -->
+    <!-- 语音计数需要录音权限；识别完全在本机进行，不申请联网权限
+         （见 docs/adr/0001-local-speech-recognition-sherpa-onnx.md） -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
-    <!-- 语音识别可能走远程服务，release 包里也需要联网权限
-         （Flutter 只会给 debug/profile 清单自动加上 INTERNET） -->
-    <uses-permission android:name="android.permission.INTERNET" />
     <application
         android:label="@string/app_name"
         android:name="${applicationName}"

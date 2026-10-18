@@ -36,6 +36,9 @@ migrate_working_dir/
 # 由 lib/l10n/*.arb 生成的本地化代码（pub get / flutter run 会自动重新生成）
 /lib/l10n/gen/
 
+# 本地语音识别模型（构建前跑 tool/fetch_model.dart 生成，见 CONTEXT.md 的「模型」）
+/assets/models/
+
 # Symbolication related
 app.*.symbols
 
